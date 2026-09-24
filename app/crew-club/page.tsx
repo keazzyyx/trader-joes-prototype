@@ -26,7 +26,7 @@ const PERKS = [
 export default function CrewClubPage() {
   return (
     <>
-      <section className="mx-auto grid max-w-[1200px] items-center gap-12 px-4 pt-10 pb-16 sm:px-6 sm:pt-16 lg:grid-cols-[1fr_400px] lg:gap-16">
+      <section className="mx-auto grid max-w-[1200px] items-center gap-12 overflow-x-clip px-4 pt-10 pb-16 sm:px-6 sm:pt-16 lg:grid-cols-[1fr_400px] lg:gap-16">
         <div>
           <h1 className="font-wonk text-[48px] leading-[0.96] font-semibold sm:text-[76px]">
             A loyalty program with <span className="text-red">no points.</span>

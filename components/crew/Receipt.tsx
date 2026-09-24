@@ -18,7 +18,7 @@ export function Receipt() {
       style={{ filter: "drop-shadow(0 1px 1px rgb(31 26 23 / 0.25)) drop-shadow(0 16px 18px rgb(31 26 23 / 0.2))" }}
     >
     {/* register slot */}
-    <div aria-hidden className="absolute -top-2 -inset-x-3 z-10 h-3 rounded-full bg-ink" />
+    <div aria-hidden className="absolute -top-2 -inset-x-1.5 z-10 sm:-inset-x-3 h-3 rounded-full bg-ink" />
     <motion.div
       initial={{ clipPath: "inset(0 0 100% 0)" }}
       animate={{ clipPath: "inset(0 0 0% 0)" }}
