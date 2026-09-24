@@ -1,26 +1,154 @@
 @import "tailwindcss";
 
+/* The palette is closed: nothing outside these eight colors (packaging art excepted). */
+@theme {
+  --color-*: initial;
+  --color-paper: #fffdf8;
+  --color-ink: #1f1a17;
+  --color-red: #c8102e;
+  --color-red-deep: #a20c25;
+  --color-board: #24352c;
+  --color-chalk: #f3efe6;
+  --color-kraft: #d9b98a;
+  --color-kraft-deep: #b8925e;
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-body: var(--font-work-sans), system-ui, sans-serif;
+
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .12 0 0 0 0 .1 0 0 0 0 .09 0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --chalk-noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.6' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .95 0 0 0 0 .94 0 0 0 0 .9 0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='.02 .9' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 .45 0 0 0 0 .32 0 0 0 0 .18 0 0 0 .16 0'/></filter><rect width='100%' height='100%' filter='url(%23f)'/></svg>");
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  background-color: var(--color-paper);
+  background-image: var(--noise);
+  overflow-x: hidden;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+::selection {
+  background: var(--color-red);
+  color: var(--color-paper);
+}
+
+/* Visible, chunky focus that works on paper, kraft and chalkboard alike. */
+:focus-visible {
+  outline: 3px solid var(--color-red);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.on-dark :focus-visible,
+.on-dark:focus-visible {
+  outline-color: var(--color-chalk);
+}
+
+@utility font-wonk {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+}
+@utility font-soft {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 60, "WONK" 0;
+}
+
+@utility tex-paper {
+  background-color: var(--color-paper);
+  background-image: var(--noise);
+}
+@utility tex-kraft {
+  background-color: var(--color-kraft);
+  background-image: var(--fiber), var(--noise);
+}
+@utility tex-board {
+  background-color: var(--color-board);
+  background-image:
+    var(--chalk-noise),
+    radial-gradient(ellipse 60% 30% at 30% 20%, rgb(243 239 230 / 0.06), transparent 70%),
+    radial-gradient(ellipse 50% 25% at 75% 70%, rgb(243 239 230 / 0.05), transparent 70%);
+}
+/* Kraft wood frame: layered grain stripes on the border box. */
+@utility wood-frame {
+  border: 14px solid transparent;
+  background:
+    linear-gradient(var(--color-board), var(--color-board)) padding-box,
+    repeating-linear-gradient(
+        93deg,
+        var(--color-kraft) 0 7px,
+        var(--color-kraft-deep) 7px 9px,
+        var(--color-kraft) 9px 19px,
+        var(--color-kraft-deep) 19px 20px
+      )
+      border-box;
+  box-shadow:
+    inset 0 0 0 1px rgb(31 26 23 / 0.35),
+    0 1px 0 rgb(31 26 23 / 0.2),
+    0 18px 40px -18px rgb(31 26 23 / 0.55);
+}
+
+.chalk-text {
+  color: var(--color-chalk);
+  text-shadow: 0 0 1px rgb(243 239 230 / 0.6);
+}
+
+/* Hero headline: SVG text strokes draw on, then the chalk fill settles in. */
+.chalk-draw text {
+  fill: var(--color-chalk);
+  fill-opacity: 0;
+  stroke: var(--color-chalk);
+  stroke-width: 1.4;
+  stroke-dasharray: 900;
+  stroke-dashoffset: 900;
+  animation:
+    chalk-stroke 1.5s var(--ease-settle) forwards,
+    chalk-fill 0.6s ease-out forwards;
+  animation-delay: var(--d, 0s), calc(var(--d, 0s) + 0.9s);
+}
+@keyframes chalk-stroke {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes chalk-fill {
+  to { fill-opacity: 0.96; stroke-opacity: 0.35; }
+}
+.chalk-underline {
+  stroke-dasharray: 700;
+  stroke-dashoffset: 700;
+  animation: chalk-stroke 0.9s var(--ease-settle) forwards;
+  animation-delay: var(--d, 0s);
+}
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chalk-draw text {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    fill-opacity: 0.96;
+    stroke-opacity: 0.35;
+    animation: chalk-fade 0.3s ease-out both;
+  }
+  .chalk-underline {
+    stroke-dasharray: none;
+    animation: chalk-fade 0.3s ease-out both;
+  }
+  html:focus-within { scroll-behavior: auto; }
+}
+@keyframes chalk-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
