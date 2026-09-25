@@ -14,6 +14,7 @@ const FUNNEL: { event: TrackEvent; label: string }[] = [
   { event: "cta_drawer_opened", label: "Hit the header CTA" },
   { event: "flyer_signup_submitted", label: "Signed up for the Flyer" },
   { event: "drop_alert_set", label: "Set a drop alert" },
+  { event: "crew_cta_clicked", label: "Hit the Crew CTA on home" },
   { event: "crew_club_completed", label: "Finished Crew Club" },
   { event: "delivery_waitlist_joined", label: "Joined a delivery waitlist" },
 ];

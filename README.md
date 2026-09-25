@@ -24,7 +24,7 @@ vercel deploy      # or: vercel deploy --prod
 
 | Route | What it does | Converts to |
 | --- | --- | --- |
-| `/` | Cream hero with the headline at 14.5vw and a cutout overlapping it, inline Flyer signup, a red marquee, the four "why it's different" statements on green, the six regulars as cutouts on cream, the 2026 Customer Choice Awards on yellow, a red signup band | Fearless Flyer |
+| `/` | Data-driven cream hero: the next upcoming drop's name, "is back in", and a live countdown that flips digit by digit ("lands today" on the day; a fallback line if nothing is coming). "Tell me when" subscribes and sets a drop alert in one go. Then a red "The Crew hears first" section, a yellow marquee, the four "why it's different" statements on green, the six regulars as cutouts on cream, the 2026 Customer Choice Awards on yellow, a red signup band | Fearless Flyer, drop alert, Crew Club |
 | `/drops` | Green hero, then the eleven seasonal items as cutouts in a two-column staggered layout: in stores now, live countdowns in the display face, "GONE" stamped across sold-out items. Text-link filters (All / This week / Coming up / Sold out). "Notify me" expands an inline email field | Drop alerts, Crew Club |
 | `/crew-club` | Yellow hero, "No points. No tiers. No discounts." Three stacked full-bleed steps (email, home store, three favorite aisles), each unlocking the next. Finishing prints a red full-bleed section with the member number at 20vw. Remembered on return visits | Crew Club |
 | `/delivery` | Cream hero, "Coming soon to your door", then four full-bleed alternating color sections with a line drawing and one sentence each, a plain-language Q&A, and a store waitlist with a live neighbor counter | Delivery waitlist |
@@ -44,10 +44,11 @@ The **Get the Fearless Flyer** pill in the header scrolls to the nearest Flyer i
 | Event | Fired when | Key params |
 | --- | --- | --- |
 | `flyer_signup_submitted` | Any Flyer form is submitted (hero, red band, drops, delivery) | `source`, `method`, `subscriber_id` |
-| `drop_alert_set` | "Notify me" is confirmed on a drop card | `drop_id`, `drop_name`, `drop_status`, `days_until` |
+| `drop_alert_set` | "Notify me" is confirmed on a drop card, or the home hero's "Tell me when" is submitted (which also fires `flyer_signup_submitted`) | `drop_id`, `drop_name`, `drop_status`, `days_until`, `source` |
 | `crew_club_completed` | The third Crew Club step is finished and the card prints | `member_id`, `store_id`, `store_name`, `categories`, `has_birth_month` |
 | `delivery_waitlist_joined` | Someone joins a store's delivery waitlist | `store_id`, `store_name`, `city`, `waitlist_position` |
 | `shelf_section_viewed` | The famous-regulars shelf on `/` scrolls into view (once per page view) | `section`, `items` |
+| `crew_cta_clicked` | The cream "Join the Crew" pill on the home page's red section | `cta_location` |
 | `cta_drawer_opened` | The header pill (or any "send me the Flyer" text link) scrolls to a signup input. The name is kept from the first version so the funnel history stays comparable | `cta_location`, `action: "scroll_to_signup"` |
 
 To send to GA4 for real, replace the `console.log` in `track()` with a `gtag("event", name, params)` call or a POST to

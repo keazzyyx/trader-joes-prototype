@@ -12,7 +12,8 @@ export type TrackEvent =
   | "crew_club_completed"
   | "delivery_waitlist_joined"
   | "shelf_section_viewed"
-  | "cta_drawer_opened";
+  | "cta_drawer_opened"
+  | "crew_cta_clicked";
 
 export type TrackParams = Record<string, string | number | boolean | string[] | null | undefined>;
 

@@ -67,7 +67,7 @@ export function WipeProvider({ children }: { children: React.ReactNode }) {
 export const useWipe = () => useContext(WipeCtx);
 
 /** A next/link that goes through the wipe. Modifier-clicks still open normally. */
-export function WipeLink({ href, children, className, ...rest }: React.ComponentProps<typeof Link> & { href: string }) {
+export function WipeLink({ href, children, className, onClick, ...rest }: React.ComponentProps<typeof Link> & { href: string }) {
   const { go } = useWipe();
   return (
     <Link
@@ -75,6 +75,8 @@ export function WipeLink({ href, children, className, ...rest }: React.Component
       className={className}
       {...rest}
       onClick={(e) => {
+        onClick?.(e);
+        if (e.defaultPrevented) return;
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
         e.preventDefault();
         go(href);

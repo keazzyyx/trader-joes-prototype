@@ -1,5 +1,6 @@
 import { Headline } from "@/components/ui/Reveal";
 import { Signup } from "@/components/ui/Signup";
+import { JoinCrewLink } from "@/components/ui/JoinCrewLink";
 
 export function Closer() {
   return (
@@ -9,6 +10,7 @@ export function Closer() {
         New products, honest reviews, the occasional pun we’re not proud of. Roughly once a month. Free, obviously. We don’t charge for mail.
       </p>
       <Signup source="band" on="red" className="mt-10 max-w-[860px]" />
+      <JoinCrewLink href="/crew-club" from="home_bottom" className="mt-8 text-cream" />
     </section>
   );
 }
