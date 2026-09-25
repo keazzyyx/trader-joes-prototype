@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { Receipt } from "@/components/crew/Receipt";
 import { CrewSignup } from "@/components/crew/CrewSignup";
-import { buttonClass } from "@/components/ui/button";
+import { Headline, Reveal } from "@/components/ui/Reveal";
+import { Marquee } from "@/components/ui/Marquee";
+import { pill } from "@/components/ui/pill";
+import { Eye } from "@/components/art/Doodles";
 
 export const metadata: Metadata = {
   title: "Crew Club",
@@ -9,65 +11,43 @@ export const metadata: Metadata = {
 };
 
 const PERKS = [
-  {
-    title: "Early word on drops",
-    body: "The day before a seasonal thing lands, you hear about it. Pumpkin people, this is your moment.",
-  },
-  {
-    title: "Something on your birthday",
-    body: "Tell a Crew member at the register it’s your birthday month. They’ll hand you a small something. Could be flowers. Could be cookies.",
-  },
-  {
-    title: "Back-in-stock alerts, for your store",
-    body: "When your favorite frozen thing comes back to your store, you get one email. Not a region. Your store.",
-  },
+  { big: "Early word on drops", small: "The day before a seasonal thing lands, you hear about it. Pumpkin people, this is your moment." },
+  { big: "Something on your birthday", small: "Tell a Crew member at the register it’s your birthday month. They’ll hand you a small something. Could be flowers. Could be cookies." },
+  { big: "Back-in-stock alerts, for your store", small: "When your favorite frozen thing comes back to your store, you get one email. Not a region. Your store." },
 ];
 
 export default function CrewClubPage() {
   return (
     <>
-      <section className="mx-auto grid max-w-[1200px] items-center gap-12 overflow-x-clip px-4 pt-10 pb-16 sm:px-6 sm:pt-16 lg:grid-cols-[1fr_400px] lg:gap-16">
-        <div>
-          <h1 className="font-wonk text-[48px] leading-[0.96] font-semibold sm:text-[76px]">
-            A loyalty program with <span className="text-red">no points.</span>
-          </h1>
-          <p className="mt-6 max-w-[50ch] text-[19px] leading-relaxed text-ink/80">
-            No tiers, no discounts, no plastic card on your keychain. Our prices are already the price, so there&rsquo;s
-            nothing to unlock. Crew Club just means you hear things first.
-          </p>
-          <a href="#join" className={buttonClass("red", "mt-8")}>
-            Start my Crew Club card
-          </a>
-          <p className="mt-4 text-[14px] text-ink/60">Crew Club is made up for this class project. Trader Joe&rsquo;s really doesn&rsquo;t have a loyalty program.</p>
-        </div>
-        <Receipt />
+      <section className="relative overflow-x-clip bg-yellow px-5 pt-36 pb-20 text-ink sm:px-8 sm:pt-40 sm:pb-28">
+        <Headline as="h1" lines={["No points.", "No tiers.", "No discounts."]} className="text-[18vw] sm:text-[14.5vw]" />
+        <Eye className="absolute right-[-4vw] bottom-[8vw] hidden h-[14vw] w-auto text-ink lg:block" />
+        <p className="mt-10 max-w-[46ch] text-[17px] leading-snug">
+          No plastic card on your keychain either. Our prices are already the price, so there’s nothing to unlock. Crew Club just means you hear things first.
+        </p>
+        <a href="#join" className={pill("yellow", "mt-8")}>
+          Join the Crew
+        </a>
+        <p className="mt-5 text-[14px] opacity-70">Crew Club is made up for this class project. Trader Joe’s really doesn’t have a loyalty program.</p>
       </section>
 
-      <section aria-labelledby="perks-title" className="tex-board on-dark chalk-text border-y-[10px] border-kraft-deep">
-        <div className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 sm:py-20">
-          <h2 id="perks-title" className="font-wonk text-[36px] leading-[1.02] font-semibold sm:text-[50px]">
-            What you actually get
-          </h2>
-          <div className="mt-10 grid gap-10 md:grid-cols-3 md:gap-0 md:divide-x-2 md:divide-dashed md:divide-chalk/25">
-            {PERKS.map((p) => (
-              <div key={p.title} className="md:px-8 md:first:pl-0 md:last:pr-0">
-                <h3 className="font-wonk text-[26px] leading-tight font-semibold text-kraft">{p.title}</h3>
-                <p className="mt-3 text-[17px] leading-relaxed text-chalk/85">{p.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      <Marquee tone="red" items={["No points", "No tiers", "No discounts", "No points", "No tiers", "No discounts"]} />
+
+      <section aria-labelledby="perks-title" className="on-red bg-green px-5 py-24 text-cream sm:px-8 sm:py-36">
+        <Headline id="perks-title" lines={["What you", "actually get"]} className="text-[13vw] sm:text-[9vw]" />
+        <ol className="mt-16 grid gap-14 sm:mt-24 sm:gap-20">
+          {PERKS.map((p, i) => (
+            <li key={p.big} className={i % 2 ? "sm:ml-auto sm:text-right" : ""}>
+              <p className="display max-w-[13em] text-[10vw] sm:text-[5.6vw]">
+                <Reveal>{p.big}</Reveal>
+              </p>
+              <p className={`mt-3 max-w-[42ch] text-[16px] leading-snug opacity-85 ${i % 2 ? "sm:ml-auto" : ""}`}>{p.small}</p>
+            </li>
+          ))}
+        </ol>
       </section>
 
-      <section id="join" aria-labelledby="join-title" className="mx-auto max-w-[1200px] scroll-mt-28 px-4 pt-20 pb-24 sm:px-6 sm:pt-24">
-        <div className="mx-auto mb-10 max-w-[760px] text-center">
-          <h2 id="join-title" className="font-wonk text-[38px] leading-[1.02] font-semibold sm:text-[52px]">
-            Join in about a minute.
-          </h2>
-          <p className="mt-3 text-[18px] text-ink/75">Three quick questions. Then you get a card you never have to show anyone.</p>
-        </div>
-        <CrewSignup />
-      </section>
+      <CrewSignup />
     </>
   );
 }

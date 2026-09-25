@@ -1,11 +1,11 @@
 "use client";
 import { MotionConfig } from "framer-motion";
-import { FlyerDrawerProvider } from "./FlyerDrawer";
+import { WipeProvider } from "./Wipe";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <MotionConfig reducedMotion="user">
-      <FlyerDrawerProvider>{children}</FlyerDrawerProvider>
+      <WipeProvider>{children}</WipeProvider>
     </MotionConfig>
   );
 }

@@ -1,17 +1,20 @@
-import { HeroBoard } from "@/components/home/HeroBoard";
-import { ShelfTags } from "@/components/home/ShelfTags";
-import { ProductShelf } from "@/components/home/ProductShelf";
+import { Hero } from "@/components/home/Hero";
+import { Different } from "@/components/home/Different";
+import { Products } from "@/components/home/Products";
 import { Awards } from "@/components/home/Awards";
-import { RedBand } from "@/components/home/RedBand";
+import { Closer } from "@/components/home/Closer";
+import { Marquee } from "@/components/ui/Marquee";
 
 export default function Home() {
   return (
     <>
-      <HeroBoard />
-      <ShelfTags />
-      <ProductShelf />
+      <Hero />
+      <Marquee tone="red" items={["No coupons", "No sales", "No membership cards", "No coupons", "No sales", "No membership cards"]} />
+      <Different />
+      <Products />
+      <Marquee tone="ink" items={["The Fearless Flyer", "New stuff every month", "The Fearless Flyer", "New stuff every month"]} speed={34} />
       <Awards />
-      <RedBand />
+      <Closer />
     </>
   );
 }
