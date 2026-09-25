@@ -110,8 +110,13 @@ export const DROPS: Drop[] = [
   },
 ];
 
+/**
+ * Drops land at 8am Pacific. Anchored to a fixed UTC offset (not the runtime's local zone) so the
+ * build server and the browser agree on the instant, otherwise pre-rendered countdowns mismatch on hydration.
+ */
+const PACIFIC_OFFSET_H = 7;
 function atMonthDay(year: number, [m, d]: [number, number], endOfDay = false) {
-  return endOfDay ? new Date(year, m - 1, d, 23, 59, 59) : new Date(year, m - 1, d, 8, 0, 0);
+  return endOfDay ? new Date(Date.UTC(year, m - 1, d + 1, PACIFIC_OFFSET_H) - 1) : new Date(Date.UTC(year, m - 1, d, 8 + PACIFIC_OFFSET_H));
 }
 
 /** Works out where a drop sits in its yearly cycle relative to `now`. */
@@ -129,4 +134,8 @@ export function dropStatus(drop: Drop, now: Date = new Date()): DropStatus {
   return days <= UPCOMING_HORIZON_DAYS ? { kind: "upcoming", startsAt: next } : { kind: "gone", returnsAt: next };
 }
 
-export const shortDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+/** Dates are always shown in store time, regardless of where the page was built or is being read. */
+export const STORE_TZ = "America/Los_Angeles";
+export const shortDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: STORE_TZ });
+export const sameStoreDay = (a: Date, b: Date) =>
+  a.toLocaleDateString("en-CA", { timeZone: STORE_TZ }) === b.toLocaleDateString("en-CA", { timeZone: STORE_TZ });

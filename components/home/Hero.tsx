@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useId, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { DROPS, dropStatus, type Drop } from "@/lib/data/drops";
+import { DROPS, dropStatus, sameStoreDay, type Drop } from "@/lib/data/drops";
 import { useNow, useStoreValue } from "@/lib/hooks";
 import { isEmail, store } from "@/lib/store";
 import { track } from "@/lib/analytics";
@@ -33,12 +33,10 @@ function countdownLabel(ms: number) {
   return `${days} ${days === 1 ? "day" : "days"} ${hrs} ${hrs === 1 ? "hr" : "hrs"}`;
 }
 
-const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-
 export function Hero() {
-  const { now } = useNow(60_000);
+  const { now, live } = useNow(60_000);
   const next = useMemo(() => nextDrop(now), [now]);
-  const today = !!next && sameDay(next.at, now);
+  const today = !!next && sameStoreDay(next.at, now);
 
   const line1 = next ? next.drop.name : "Something new";
   const line2 = next ? (today ? "Lands" : "Is back in") : "Lands";
@@ -51,13 +49,14 @@ export function Hero() {
     <section aria-label="Welcome" className="flex min-h-dvh flex-col justify-end bg-cream px-5 pt-32 pb-10 sm:px-8 sm:pb-14">
       <h1 className="display leading-[0.88]">
         <Line i={0} style={{ fontSize: line1Size }}>
-          {line1}
+          <span suppressHydrationWarning>{line1}</span>
         </Line>
         <Line i={1} className="text-[14vw]">
-          {line2}
+          <span suppressHydrationWarning>{line2}</span>
         </Line>
         <Line i={2} className="text-[14vw]">
-          <FlipText text={line3.toUpperCase()} />
+          {/* The flip board mounts after hydration; the server renders plain text. */}
+          {live ? <FlipText text={line3.toUpperCase()} /> : <span suppressHydrationWarning>{line3.toUpperCase()}</span>}
         </Line>
       </h1>
       <p className="mt-6 text-[17px] sm:text-[18px]">The Flyer tells you when. The Crew hears first.</p>
