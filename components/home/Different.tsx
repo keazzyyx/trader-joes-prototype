@@ -12,6 +12,9 @@ export function Different() {
   return (
     <section aria-labelledby="different-title" className="on-red bg-green px-5 py-24 text-cream sm:px-8 sm:py-36">
       <Headline id="different-title" lines={["Why it feels", "different in here"]} className="text-[13vw] sm:text-[9vw]" />
+      <p className="mt-8 max-w-[44ch] text-[18px] leading-snug sm:text-[20px]">
+        About 4,000 products, and we tasted every one. No sales to wait for, no app to scan. The price on the tag is the price. Four things we do on purpose:
+      </p>
       <ol className="mt-16 grid gap-14 sm:mt-24 sm:gap-20">
         {POINTS.map((p, i) => (
           <li key={p.big} className={i % 2 ? "sm:ml-auto sm:text-right" : ""}>

@@ -17,7 +17,18 @@ const FIELD: Record<Tone, string> = {
  * The Fearless Flyer signup: one input, one button, inline. Same everywhere,
  * so the success copy and the event payload never drift between placements.
  */
-export function Signup({ source, on = "cream", className = "" }: { source: Source; on?: Tone; className?: string }) {
+export function Signup({
+  source,
+  on = "cream",
+  className = "",
+  variant = "fill",
+}: {
+  source: Source;
+  on?: Tone;
+  className?: string;
+  /** "fill": a flat palette fill. "rule": transparent with a bottom rule in the text color (hero only). */
+  variant?: "fill" | "rule";
+}) {
   const id = useId();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "error" | "done" | "already">("idle");
@@ -71,7 +82,7 @@ export function Signup({ source, on = "cream", className = "" }: { source: Sourc
             setEmail(e.target.value);
             if (state === "error") setState("idle");
           }}
-          className={`field ${FIELD[on]} sm:max-w-[520px]`}
+          className={`field sm:max-w-[560px] ${variant === "rule" ? "border-b-[3px] border-current bg-transparent px-0" : FIELD[on]}`}
         />
         <button type="submit" className={pill(on)}>
           Send me the Flyer

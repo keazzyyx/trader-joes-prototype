@@ -1,25 +1,28 @@
-import { Headline } from "@/components/ui/Reveal";
-import { Drift } from "@/components/ui/Drift";
+"use client";
+import { motion } from "framer-motion";
 import { Signup } from "@/components/ui/Signup";
-import { OrangeChicken } from "@/components/art/Famous";
-import { Arrow } from "@/components/art/Doodles";
 
+const LINES = ["No coupons.", "No cards.", "Just the hunt."];
+
+/** Full-viewport cream hero: one headline that slides up under a mask on load, then the signup. */
 export function Hero() {
   return (
-    <section aria-label="Welcome" className="relative overflow-x-clip bg-cream px-5 pt-36 pb-16 sm:px-8 sm:pt-40 sm:pb-24">
-      <div className="relative">
-        <Headline as="h1" lines={["About 4,000", "products.", "No coupons.", "Just the hunt."]} className="relative z-10 text-[16vw] sm:text-[14.5vw]" />
-        <Drift amount={18} className="absolute -right-[4vw] bottom-[-12vw] z-0 w-[46vw] sm:right-0 sm:bottom-[-7vw] sm:w-[27vw]">
-          <OrangeChicken />
-        </Drift>
-      </div>
-      <p className="relative z-10 mt-[16vw] max-w-[40ch] text-[17px] leading-snug sm:mt-16 sm:text-[18px]">
-        No sales to wait for, no app to scan. The price on the tag is the price. The Fearless Flyer tells you what just landed. Once a month, free.
-      </p>
-      <div className="relative mt-6 max-w-[860px]">
-        <Signup source="hero" on="cream" />
-        <Arrow className="absolute -top-14 right-0 hidden h-12 w-auto text-red lg:block" />
-      </div>
+    <section aria-label="Welcome" className="flex min-h-dvh flex-col justify-end bg-cream px-5 pt-32 pb-10 sm:px-8 sm:pb-14">
+      <h1 className="display text-[14vw] leading-[0.88]">
+        {LINES.map((line, i) => (
+          <span key={line} className="block overflow-hidden pb-[0.06em]">
+            <motion.span
+              className="block"
+              initial={{ y: "110%" }}
+              animate={{ y: "0%" }}
+              transition={{ duration: 0.65, delay: 0.1 + i * 0.08, ease: [0.2, 0.8, 0.2, 1] }}
+            >
+              {line}
+            </motion.span>
+          </span>
+        ))}
+      </h1>
+      <Signup source="hero" on="cream" variant="rule" className="mt-8 max-w-[900px] sm:mt-10" />
     </section>
   );
 }
