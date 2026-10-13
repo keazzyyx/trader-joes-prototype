@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { store, type DropAlert, type Member, type Subscriber, type WaitlistEntry } from "@/lib/store";
-import { clearEventLog, readEventLog, type Ga4Payload, type TrackEvent } from "@/lib/analytics";
+import type { Ga4Payload, TrackEvent } from "@/lib/analytics";
 import { DROPS } from "@/lib/data/drops";
 import { storeById } from "@/lib/data/stores";
 import { categoryLabel } from "@/lib/data/categories";
@@ -19,14 +19,27 @@ const FUNNEL: { event: TrackEvent; label: string }[] = [
   { event: "delivery_waitlist_joined", label: "Joined a delivery waitlist" },
 ];
 
+const safePath = (u: unknown) => {
+  try {
+    return new URL(String(u)).pathname;
+  } catch {
+    return "";
+  }
+};
 const when = (iso: string) => new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 const dropName = (id: string) => DROPS.find((d) => d.id === id)?.name ?? id;
 
 export function DebugPanel() {
   const [data, setData] = useState<Data | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const load = useCallback(async () => {
-    const [subscribers, dropAlerts, members, waitlist] = await Promise.all([store.subscribers.list(), store.dropAlerts.list(), store.members.list(), store.waitlist.list()]);
-    setData({ subscribers, dropAlerts, members, waitlist, events: readEventLog(), visitor: store.visitorId() });
+    try {
+      const [subscribers, dropAlerts, members, waitlist, events] = await Promise.all([store.subscribers.list(), store.dropAlerts.list(), store.members.list(), store.waitlist.list(), store.events.list("all")]);
+      setData({ subscribers, dropAlerts, members, waitlist, events, visitor: store.visitorId() });
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not reach the database");
+    }
   }, []);
 
   useEffect(() => {
@@ -38,6 +51,13 @@ export function DebugPanel() {
     };
   }, [load]);
 
+  if (error && !data)
+    return (
+      <div className="bg-cream px-5 pt-36 pb-24 sm:px-8">
+        <h1 className="display text-[12vw] leading-[0.85] sm:text-[8vw]">Back office is offline</h1>
+        <p className="mt-6 max-w-[60ch] text-[17px]">{error}</p>
+      </div>
+    );
   if (!data) return <div className="min-h-[60vh] bg-cream" />;
 
   const mine = (r: { visitorId: string }) => r.visitorId === data.visitor;
@@ -57,22 +77,26 @@ export function DebugPanel() {
     <div className="bg-cream px-5 pt-36 pb-24 sm:px-8 sm:pt-40">
       <h1 className="display text-[16vw] leading-[0.85] sm:text-[10vw]">Back office</h1>
       <p className="mt-6 max-w-[60ch] text-[17px] leading-snug">
-        Everything the prototype has stored in this browser, and every conversion event it fired. Rows you created are in red. The rest is seeded demo data.
+        Everything the prototype has stored, from every visitor, and every conversion event fired. Rows you created from this browser are in red. The rest is seeded demo data and other people.
       </p>
       <p className="label mt-3 opacity-70">Visitor id {data.visitor}</p>
       <div className="mt-8 flex flex-wrap gap-4">
         <button type="button" className={pill("cream")} onClick={download}>
           Download everything as JSON
         </button>
-        <button type="button" className="display min-h-16 text-[22px] underline decoration-[3px] underline-offset-[6px]" onClick={() => clearEventLog()}>
-          Clear the event log
+        <button type="button" className="display min-h-16 text-[22px] underline decoration-[3px] underline-offset-[6px]" onClick={async () => {
+            await store.events.clear();
+            load();
+          }}
+        >
+          Clear my events
         </button>
         <button
           type="button"
           className="display min-h-16 text-[22px] underline decoration-[3px] underline-offset-[6px]"
           onClick={async () => {
+            if (!confirm("Wipe every row for every visitor and reload the demo data?")) return;
             await store.reset();
-            clearEventLog();
             load();
           }}
         >
@@ -82,7 +106,7 @@ export function DebugPanel() {
 
       <section className="mt-20" aria-labelledby="funnel">
         <h2 id="funnel" className="display text-[10vw] sm:text-[5vw]">
-          Funnel, this browser
+          Funnel, all visitors
         </h2>
         <div className="mt-8 grid gap-4">
           {FUNNEL.map((f) => (
@@ -126,7 +150,7 @@ export function DebugPanel() {
         <h2 id="events" className="display text-[10vw] sm:text-[5vw]">
           Tracked events <span className="opacity-50">({data.events.length})</span>
         </h2>
-        <p className="mt-2 text-[15px] opacity-75">GA4 Measurement Protocol payloads, newest first. Also logged to the console as they fire.</p>
+        <p className="mt-2 text-[15px] opacity-75">GA4 Measurement Protocol payloads from every visitor, newest first. Also logged to the console as they fire.</p>
         {data.events.length === 0 ? (
           <p className="mt-6 text-[17px]">Nothing yet. Go sign up for something, then come back.</p>
         ) : (
@@ -139,7 +163,7 @@ export function DebugPanel() {
                     <summary className="flex min-h-12 cursor-pointer flex-wrap items-baseline gap-x-5 gap-y-1 list-none [&::-webkit-details-marker]:hidden">
                       <span className="display text-[24px] text-red">{e.name}</span>
                       <span className="label opacity-60">{new Date(p.timestamp_micros / 1000).toLocaleTimeString()}</span>
-                      <span className="label opacity-60">{new URL(e.params.page_location).pathname}</span>
+                      <span className="label opacity-60">{safePath(e.params.page_location)}</span>
                     </summary>
                     <pre className="mt-3 overflow-x-auto bg-ink px-5 py-4 text-[13px] leading-relaxed text-cream">{JSON.stringify(p, null, 2)}</pre>
                   </details>

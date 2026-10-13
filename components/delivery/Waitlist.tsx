@@ -19,7 +19,7 @@ export function Waitlist() {
   const id = useId();
   const [storeId, setStoreId] = useState(STORES[0].id);
   const [email, setEmail] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [drift, setDrift] = useState({ storeId: "", n: 0 });
   const real = useStoreValue(() => store.waitlist.countFor(storeId), [storeId]) ?? 0;
   const mine = useStoreValue(() => store.waitlist.mine()) ?? [];
@@ -47,9 +47,13 @@ export function Waitlist() {
 
   async function join(e: React.FormEvent) {
     e.preventDefault();
-    if (!isEmail(email)) return setError(true);
-    await store.waitlist.join({ storeId, email });
-    track("delivery_waitlist_joined", { store_id: storeId, store_name: s.name, city: s.city, waitlist_position: count + 1 });
+    if (!isEmail(email)) return setError("That email doesn’t look quite right. Mind checking it?");
+    try {
+      await store.waitlist.join({ storeId, email });
+      track("delivery_waitlist_joined", { store_id: storeId, store_name: s.name, city: s.city, waitlist_position: count + 1 });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn’t save that. Try again in a moment.");
+    }
   }
 
   return (
@@ -97,16 +101,16 @@ export function Waitlist() {
                 autoComplete="email"
                 value={email}
                 placeholder="you@example.com"
-                aria-invalid={error}
+                aria-invalid={!!error}
                 aria-describedby={`${id}-help`}
                 onChange={(e) => {
                   setEmail(e.target.value);
-                  setError(false);
+                  setError(null);
                 }}
                 className="field bg-cream"
               />
               <p id={`${id}-help`} className={`text-[15px] ${error ? "font-semibold text-yellow" : "opacity-75"}`}>
-                {error ? "That email doesn’t look quite right. Mind checking it?" : "We only use it to tell you delivery has started."}
+                {error ?? "We only use it to tell you delivery has started."}
               </p>
               <button type="submit" className={pill("ink", "mt-2 justify-self-start")}>
                 Join the {s.name} waitlist

@@ -23,6 +23,7 @@ export function CrewSignup() {
   const [storeId, setStoreId] = useState<string | null>(null);
   const [cats, setCats] = useState<string[]>([]);
   const doneRef = useRef<HTMLElement>(null);
+  const [failure, setFailure] = useState<string | null>(null);
 
   useEffect(() => {
     store.members.current().then(setMember);
@@ -33,11 +34,16 @@ export function CrewSignup() {
 
   async function finish() {
     if (!isEmail(email) || !storeId || cats.length !== 3) return;
-    const m = await store.members.create({ email, birthMonth, storeId, categories: cats });
-    track("crew_club_completed", { member_id: m.id, store_id: storeId, store_name: storeById(storeId)?.name, categories: cats, has_birth_month: birthMonth !== null });
-    setFresh(true);
-    setMember(m);
-    requestAnimationFrame(() => doneRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }));
+    try {
+      const m = await store.members.create({ email, birthMonth, storeId, categories: cats });
+      track("crew_club_completed", { member_id: m.id, store_id: storeId, store_name: storeById(storeId)?.name, categories: cats, has_birth_month: birthMonth !== null });
+      setFailure(null);
+      setFresh(true);
+      setMember(m);
+      requestAnimationFrame(() => doneRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }));
+    } catch (err) {
+      setFailure(err instanceof Error ? err.message : "Couldn’t save that. Try again in a moment.");
+    }
   }
 
   async function startOver() {
@@ -92,7 +98,7 @@ export function CrewSignup() {
     <div id="join">
       <StepEmail email={email} setEmail={setEmail} birthMonth={birthMonth} setBirthMonth={setBirthMonth} ok={ok1} onNext={() => scrollTo("step-2")} />
       <StepStore storeId={storeId} setStoreId={setStoreId} locked={!ok1} ok={ok2} onNext={() => scrollTo("step-3")} />
-      <StepCats cats={cats} setCats={setCats} locked={!ok2} ok={ok3} onFinish={finish} />
+      <StepCats cats={cats} setCats={setCats} locked={!ok2} ok={ok3} onFinish={finish} failure={failure} />
     </div>
   );
 }
@@ -188,7 +194,7 @@ function StepStore({ storeId, setStoreId, locked, ok, onNext }: { storeId: strin
   );
 }
 
-function StepCats({ cats, setCats, locked, ok, onFinish }: { cats: string[]; setCats: (v: string[]) => void; locked: boolean; ok: boolean; onFinish: () => void }) {
+function StepCats({ cats, setCats, locked, ok, onFinish, failure }: { cats: string[]; setCats: (v: string[]) => void; locked: boolean; ok: boolean; onFinish: () => void; failure: string | null }) {
   const full = cats.length === 3;
   return (
     <StepShell id="step-3" tone="yellow" step="Step three of three" title={["Pick three aisles", "you care about"]} locked={locked}>
@@ -215,6 +221,11 @@ function StepCats({ cats, setCats, locked, ok, onFinish }: { cats: string[]; set
       <button type="button" disabled={!ok} onClick={onFinish} className={pill("yellow", "mt-12")}>
         Join the Crew
       </button>
+      {failure && (
+        <p className="mt-4 text-[15px] font-semibold" aria-live="polite">
+          {failure}
+        </p>
+      )}
     </StepShell>
   );
 }

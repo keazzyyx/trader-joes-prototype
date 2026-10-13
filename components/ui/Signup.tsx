@@ -32,6 +32,7 @@ export function Signup({
   const id = useId();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "error" | "done" | "already">("idle");
+  const [message, setMessage] = useState("That email looks a little off. Mind checking it?");
 
   useEffect(() => {
     const known = store.knownEmail();
@@ -41,10 +42,18 @@ export function Signup({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isEmail(email)) return setState("error");
-    const sub = await store.subscribers.add({ email, source });
-    track("flyer_signup_submitted", { method: "email", source, subscriber_id: sub.id });
-    setState("done");
+    if (!isEmail(email)) {
+      setMessage("That email looks a little off. Mind checking it?");
+      return setState("error");
+    }
+    try {
+      const sub = await store.subscribers.add({ email, source });
+      track("flyer_signup_submitted", { method: "email", source, subscriber_id: sub.id });
+      setState("done");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Couldn’t save that. Try again in a moment.");
+      setState("error");
+    }
   }
 
   const fg = on === "cream" || on === "yellow" ? "text-ink" : "text-cream";
@@ -90,7 +99,7 @@ export function Signup({
       </div>
       {state === "error" && (
         <p id={`${id}-err`} className={`mt-3 text-[15px] font-semibold ${fg}`}>
-          That email looks a little off. Mind checking it?
+          {message}
         </p>
       )}
     </form>

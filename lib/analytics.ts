@@ -1,8 +1,8 @@
 /**
  * Conversion tracking. `track()` builds a GA4 Measurement Protocol-shaped payload,
- * logs it, pushes a gtag-style object onto window.dataLayer, and keeps a local
- * log so /debug can replay the funnel in class. Swap the console.log for a real
- * `fetch("https://www.google-analytics.com/mp/collect?...")` or gtag() later.
+ * logs it, pushes a gtag-style object onto window.dataLayer, and hands it to the
+ * data layer (Neon in production, localStorage in local mode) so /debug can replay
+ * the funnel in class. Add a gtag() call or a Measurement Protocol POST here later.
  */
 import { store } from "./store";
 
@@ -23,7 +23,6 @@ export type Ga4Payload = {
   events: { name: TrackEvent; params: TrackParams & { session_id: string; engagement_time_msec: number; page_location: string; page_title: string } }[];
 };
 
-const LOG_KEY = "tj.events";
 const SESSION_KEY = "tj.session";
 
 declare global {
@@ -62,26 +61,6 @@ export function track(event: TrackEvent, props: TrackParams = {}): Ga4Payload | 
 
   console.log(`[track] ${event}`, payload);
   (window.dataLayer ??= []).push({ event, ...props });
-
-  try {
-    const log = readEventLog();
-    localStorage.setItem(LOG_KEY, JSON.stringify([payload, ...log].slice(0, 500)));
-    window.dispatchEvent(new CustomEvent("tj:track", { detail: payload }));
-  } catch {
-    /* storage full or blocked; the console line above still fires */
-  }
+  store.events.add(payload).catch(() => {}).finally(() => window.dispatchEvent(new CustomEvent("tj:track", { detail: payload })));
   return payload;
-}
-
-export function readEventLog(): Ga4Payload[] {
-  try {
-    return JSON.parse(localStorage.getItem(LOG_KEY) ?? "[]") as Ga4Payload[];
-  } catch {
-    return [];
-  }
-}
-
-export function clearEventLog() {
-  localStorage.removeItem(LOG_KEY);
-  window.dispatchEvent(new CustomEvent("tj:track"));
 }

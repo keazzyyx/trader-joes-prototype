@@ -78,7 +78,7 @@ function Line({ i, className = "", style, children }: { i: number; className?: s
 function TellMeWhen({ drop, at, now }: { drop: Drop | null; at: Date | null; now: Date }) {
   const id = useId();
   const [email, setEmail] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const mine = useStoreValue(() => store.dropAlerts.mine()) ?? [];
   const done = sent || (!!drop && mine.includes(drop.id));
@@ -90,14 +90,18 @@ function TellMeWhen({ drop, at, now }: { drop: Drop | null; at: Date | null; now
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isEmail(email)) return setError(true);
-    const sub = await store.subscribers.add({ email, source: "hero" });
-    track("flyer_signup_submitted", { method: "email", source: "hero", subscriber_id: sub.id, drop_id: drop?.id ?? null });
-    if (drop && at) {
-      await store.dropAlerts.add({ dropId: drop.id, email });
-      track("drop_alert_set", { drop_id: drop.id, drop_name: drop.name, drop_status: "upcoming", days_until: Math.round((at.getTime() - now.getTime()) / DAY), source: "hero" });
+    if (!isEmail(email)) return setError("That email looks a little off. Mind checking it?");
+    try {
+      const sub = await store.subscribers.add({ email, source: "hero" });
+      track("flyer_signup_submitted", { method: "email", source: "hero", subscriber_id: sub.id, drop_id: drop?.id ?? null });
+      if (drop && at) {
+        await store.dropAlerts.add({ dropId: drop.id, email });
+        track("drop_alert_set", { drop_id: drop.id, drop_name: drop.name, drop_status: "upcoming", days_until: Math.round((at.getTime() - now.getTime()) / DAY), source: "hero" });
+      }
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn’t save that. Try again in a moment.");
     }
-    setSent(true);
   }
 
   return (
@@ -115,11 +119,11 @@ function TellMeWhen({ drop, at, now }: { drop: Drop | null; at: Date | null; now
           placeholder="you@example.com"
           value={email}
           disabled={done}
-          aria-invalid={error}
+          aria-invalid={!!error}
           aria-describedby={error ? `${id}-err` : undefined}
           onChange={(e) => {
             setEmail(e.target.value);
-            setError(false);
+            setError(null);
           }}
           className="field border-b-[3px] border-current bg-transparent px-0 sm:max-w-[480px]"
         />
@@ -139,7 +143,7 @@ function TellMeWhen({ drop, at, now }: { drop: Drop | null; at: Date | null; now
       </div>
       {error && (
         <p id={`${id}-err`} className="mt-3 text-[15px] font-semibold">
-          That email looks a little off. Mind checking it?
+          {error}
         </p>
       )}
     </form>

@@ -58,7 +58,7 @@ function Notify({ drop, status, onList, now, right }: { drop: Drop; status: Drop
   const id = useId();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [justSet, setJustSet] = useState(false);
   const done = onList || justSet;
 
@@ -68,12 +68,16 @@ function Notify({ drop, status, onList, now, right }: { drop: Drop; status: Drop
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isEmail(email)) return setError(true);
-    await store.dropAlerts.add({ dropId: drop.id, email });
-    const target = status.kind === "now" ? status.endsAt : status.kind === "upcoming" ? status.startsAt : status.returnsAt;
-    track("drop_alert_set", { drop_id: drop.id, drop_name: drop.name, drop_status: status.kind, days_until: Math.round((target.getTime() - now.getTime()) / DAY) });
-    setJustSet(true);
-    setOpen(false);
+    if (!isEmail(email)) return setError("That email looks a little off.");
+    try {
+      await store.dropAlerts.add({ dropId: drop.id, email });
+      const target = status.kind === "now" ? status.endsAt : status.kind === "upcoming" ? status.startsAt : status.returnsAt;
+      track("drop_alert_set", { drop_id: drop.id, drop_name: drop.name, drop_status: status.kind, days_until: Math.round((target.getTime() - now.getTime()) / DAY) });
+      setJustSet(true);
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn’t save that. Try again in a moment.");
+    }
   }
 
   return (
@@ -96,14 +100,14 @@ function Notify({ drop, status, onList, now, right }: { drop: Drop; status: Drop
             autoFocus
             value={email}
             placeholder="you@example.com"
-            aria-invalid={error}
+            aria-invalid={!!error}
             onChange={(e) => {
               setEmail(e.target.value);
-              setError(false);
+              setError(null);
             }}
             className="field bg-yellow"
           />
-          {error && <p className="text-[15px] font-semibold text-red">That email looks a little off.</p>}
+          {error && <p className="text-[15px] font-semibold text-red">{error}</p>}
           <div className={`flex flex-wrap items-center gap-4 ${right ? "flex-row-reverse" : ""}`}>
             <button type="submit" className={pill("cream")}>
               {status.kind === "upcoming" ? "Notify me when it drops" : "Put me on the list"}

@@ -1,9 +1,12 @@
 /**
- * The data layer. Components only ever talk to `store` (and the types below),
- * never to localStorage directly. To move to Supabase, write another object that
- * satisfies `DataStore` and export it instead; see README "Swapping the data layer".
+ * The data layer. Components only ever talk to `store` (and the types below).
+ * Two implementations satisfy `DataStore`: `localStore` (this file, localStorage, for
+ * offline dev and tests) and `httpStore` (lib/store.http.ts, the API routes backed by Neon).
+ * `NEXT_PUBLIC_DATA_BACKEND=local` picks the local one; the default is Neon.
  */
 import { SEED } from "./seed";
+import { STORE_KEYS } from "./keys";
+import type { Ga4Payload } from "./analytics";
 
 export type Source = "hero" | "drawer" | "band" | "drops" | "crew-club" | "delivery" | "footer";
 
@@ -58,23 +61,21 @@ export interface DataStore {
     /** Store ids this visitor has joined. */
     mine(): Promise<string[]>;
   };
+  events: {
+    /** Records a tracked event. Must never throw into the caller. */
+    add(payload: Ga4Payload): Promise<void>;
+    /** Newest first. "mine" is this visitor; "all" is everyone (the /debug funnel). */
+    list(scope: "mine" | "all"): Promise<Ga4Payload[]>;
+    /** Forgets this visitor's events. */
+    clear(): Promise<void>;
+  };
   /** Wipes everything and reseeds the demo data. */
   reset(): Promise<void>;
 }
 
 /* ---------- localStorage implementation ---------- */
 
-const KEYS = {
-  visitor: "tj.visitor",
-  email: "tj.email",
-  subscribers: "tj.subscribers",
-  dropAlerts: "tj.dropAlerts",
-  members: "tj.members",
-  waitlist: "tj.waitlist",
-  seeded: "tj.seeded.v1",
-} as const;
-
-export const STORE_KEYS = KEYS;
+const KEYS = STORE_KEYS;
 
 const hasWindow = () => typeof window !== "undefined" && !!window.localStorage;
 
@@ -244,16 +245,32 @@ export const localStore: DataStore = {
     },
   },
 
+  events: {
+    async add(payload) {
+      const log = read<Ga4Payload[]>(KEYS.events, []);
+      write(KEYS.events, [payload, ...log].slice(0, 500));
+    },
+    async list(scope) {
+      const log = read<Ga4Payload[]>(KEYS.events, []);
+      return scope === "mine" ? log.filter((p) => p.client_id === visitorId()) : log;
+    },
+    async clear() {
+      write(KEYS.events, []);
+    },
+  },
+
   async reset() {
     if (!hasWindow()) return;
-    for (const k of [KEYS.subscribers, KEYS.dropAlerts, KEYS.members, KEYS.waitlist, KEYS.seeded, KEYS.email]) {
+    for (const k of [KEYS.subscribers, KEYS.dropAlerts, KEYS.members, KEYS.waitlist, KEYS.seeded, KEYS.email, KEYS.events]) {
       window.localStorage.removeItem(k);
     }
     ensureSeeded();
   },
 };
 
-/** The one import components use. Swap this line to change backends. */
-export const store: DataStore = localStore;
+import { httpStore } from "./store.http";
+
+/** The one import components use. */
+export const store: DataStore = process.env.NEXT_PUBLIC_DATA_BACKEND === "local" ? localStore : httpStore;
 
 export const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());

@@ -5,7 +5,8 @@ Student prototype for **BENI 370 at the University of San Francisco**. Not affil
 The site has one job: turn visitors into **Fearless Flyer** subscribers and **Crew Club** members, and warm them up
 for **delivery** and **seasonal drops**. Every page ends in one of those conversions.
 
-Next.js 16 (App Router, static export) · TypeScript · Tailwind CSS v4 · Framer Motion. No environment variables.
+Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Framer Motion · Neon Postgres behind `/api` route handlers.
+One environment variable: `DATABASE_URL`.
 
 The visual direction is a poster, not an app: full-bleed flat color bands, one condensed display face in caps, product
 cutouts floating on the color with nothing behind them. It was built from notes taken off paputmenorca.com; see
@@ -15,10 +16,15 @@ cutouts floating on the color with nothing behind them. It was built from notes 
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
-npm run build      # static site in ./out
-vercel deploy      # or: vercel deploy --prod
+vercel integration add neon   # once: creates the Neon project and sets DATABASE_URL on Vercel
+vercel env pull .env.local    # copies DATABASE_URL here for local dev
+npm run db:migrate            # creates the tables (db/schema.sql)
+npm run db:seed               # loads the demo rows
+npm run dev                   # http://localhost:3000
+vercel deploy --prod
 ```
+
+No database yet? `NEXT_PUBLIC_DATA_BACKEND=local npm run dev` runs everything against localStorage instead.
 
 ## Routes
 
@@ -28,7 +34,7 @@ vercel deploy      # or: vercel deploy --prod
 | `/drops` | Green hero, then the eleven seasonal items as cutouts in a two-column staggered layout: in stores now, live countdowns in the display face, "GONE" stamped across sold-out items. Text-link filters (All / This week / Coming up / Sold out). "Notify me" expands an inline email field | Drop alerts, Crew Club |
 | `/crew-club` | Yellow hero, "No points. No tiers. No discounts." Three stacked full-bleed steps (email, home store, three favorite aisles), each unlocking the next. Finishing prints a red full-bleed section with the member number at 20vw. Remembered on return visits | Crew Club |
 | `/delivery` | Cream hero, "Coming soon to your door", then four full-bleed alternating color sections with a line drawing and one sentence each, a plain-language Q&A, and a store waitlist with a live neighbor counter | Delivery waitlist |
-| `/debug` | Hidden (not linked, `noindex`). Everything in the store plus every tracked event and a funnel chart, for demoing in class. Can download everything as JSON or reset to seed data | — |
+| `/debug` | Hidden (not linked, `noindex`). Every row from every visitor, every tracked event and a funnel chart, read live from Neon. Can download everything as JSON or reset to seed data | — |
 
 The **Get the Fearless Flyer** pill in the header scrolls to the nearest Flyer input on the page and focuses it.
 
@@ -39,7 +45,7 @@ The **Get the Fearless Flyer** pill in the header scrolls to the nearest Flyer i
 1. builds a GA4 Measurement Protocol–shaped payload (`client_id`, `timestamp_micros`, `events[{ name, params }]`, with `session_id`, `engagement_time_msec`, `page_location`, `page_title` added to params),
 2. `console.log`s it as `[track] <event>`,
 3. pushes `{ event, ...props }` onto `window.dataLayer` (so dropping in GTM/gtag later just works),
-4. appends it to a local log that `/debug` reads.
+4. hands it to `store.events.add()`, which POSTs it to `/api/events` (fire-and-forget) so `/debug` can show the funnel across every visitor.
 
 | Event | Fired when | Key params |
 | --- | --- | --- |
@@ -56,8 +62,7 @@ To send to GA4 for real, replace the `console.log` in `track()` with a `gtag("ev
 
 ## Data layer
 
-Components never touch `localStorage` directly. They import `store` from `lib/store.ts`, which implements this
-interface:
+Components never touch storage directly. They import `store` from `lib/store.ts`, which implements this interface:
 
 ```ts
 interface DataStore {
@@ -67,61 +72,39 @@ interface DataStore {
   dropAlerts:  { add; list; mine; countFor };
   members:     { create; list; current; forgetCurrent };
   waitlist:    { join; list; countFor; mine };
+  events:      { add; list; clear };
   reset(): Promise<void>;
 }
 ```
 
-Every method is `async` already, so a network-backed version drops in without changing any component. On first load
-the local store seeds itself from `lib/seed.ts` (30 subscribers, 34 drop alerts, 7 members, 42 waitlist entries) so
-the site and `/debug` never look empty. Writes dispatch a `tj:store` window event; `useStoreValue()` in `lib/hooks.ts`
-re-reads on that event.
+Two implementations satisfy it:
 
-### Swapping localStorage for Supabase
+- **`httpStore`** (`lib/store.http.ts`, the default): calls the route handlers in `app/api/*`, which query Neon with
+  `@neondatabase/serverless`. The connection string only ever exists on the server.
+- **`localStore`** (`lib/store.ts`): localStorage, seeded from `lib/seed.ts`. Picked with `NEXT_PUBLIC_DATA_BACKEND=local`.
 
-1. Create tables that mirror the types in `lib/store.ts`:
+Identity is an anonymous visitor id kept in the browser and sent as an `x-visitor-id` header; "my alerts", "my membership"
+and "my events" are scoped to it. Emails are unique per table so repeat signups are no-ops. Writes dispatch a `tj:store`
+window event and `useStoreValue()` in `lib/hooks.ts` re-reads on it.
 
-   ```sql
-   create table subscribers   (id uuid primary key default gen_random_uuid(), email text unique not null, source text not null, visitor_id text not null, created_at timestamptz default now());
-   create table drop_alerts   (id uuid primary key default gen_random_uuid(), drop_id text not null, email text not null, visitor_id text not null, created_at timestamptz default now(), unique (drop_id, email));
-   create table members       (id uuid primary key default gen_random_uuid(), member_number text unique not null, email text not null, birth_month int, store_id text not null, categories text[] not null, visitor_id text unique not null, created_at timestamptz default now());
-   create table waitlist      (id uuid primary key default gen_random_uuid(), store_id text not null, email text not null, visitor_id text not null, created_at timestamptz default now(), unique (store_id, email));
-   ```
+### Schema
 
-   Turn on Row Level Security. Allow `insert` for the `anon` role, and limit `select` to rows where
-   `visitor_id = auth.uid()::text` (use Supabase anonymous sign-ins so every browser gets a real `auth.uid()`).
-   Counts like `countFor` should come from a `security definer` function or a view that exposes only aggregates.
+`db/schema.sql`: `subscribers`, `drop_alerts` (unique on drop + email), `members` (unique on visitor), `waitlist`
+(unique on store + email), and `events` (every `track()` call, as GA4-shaped params in `jsonb`). `npm run db:migrate`
+applies it; it's idempotent. `npm run db:seed` loads the demo rows and skips anything already there.
 
-2. `npm install @supabase/supabase-js` and add `lib/store.supabase.ts`:
+### Endpoints
 
-   ```ts
-   import { createClient } from "@supabase/supabase-js";
-   import type { DataStore } from "./store";
+| Route | Methods | Notes |
+| --- | --- | --- |
+| `/api/subscribers` | GET, GET `?mine`, POST | POST upserts on email |
+| `/api/drop-alerts` | GET, GET `?mine`, GET `?count=<dropId>`, POST | drop id must exist in `lib/data/drops.ts` |
+| `/api/members` | GET, GET `?mine`, POST, DELETE `?mine` | POST validates store and three categories, mints the member number |
+| `/api/waitlist` | GET, GET `?mine`, GET `?count=<storeId>`, POST | |
+| `/api/events` | GET, GET `?mine`, POST, DELETE `?mine` | what `/debug` reads |
+| `/api/reset` | POST | truncates everything and reseeds. Set `RESET_TOKEN` to require `?token=` |
 
-   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-
-   export const supabaseStore: DataStore = {
-     visitorId: () => /* auth.uid() from sb.auth.getSession(), cached */,
-     knownEmail: () => localStorage.getItem("tj.email"),
-     subscribers: {
-       async add({ email, source }) {
-         const { data, error } = await sb.from("subscribers")
-           .upsert({ email, source, visitor_id: supabaseStore.visitorId() }, { onConflict: "email" })
-           .select().single();
-         if (error) throw error;
-         return { id: data.id, email: data.email, source: data.source, createdAt: data.created_at, visitorId: data.visitor_id };
-       },
-       // list, isSubscribed ...
-     },
-     // dropAlerts, members, waitlist, reset ...
-   };
-   ```
-
-3. In `lib/store.ts`, change the last export to `export const store: DataStore = supabaseStore;`. No component changes.
-   After a write, dispatch `window.dispatchEvent(new CustomEvent("tj:store"))` (or subscribe to Supabase Realtime and
-   dispatch from there) so open pages refresh.
-
-4. Add the two `NEXT_PUBLIC_SUPABASE_*` variables in Vercel. The site stays a static export; Supabase is called from
-   the browser.
+Every list is capped (500–1000 rows) and every write validates its input server-side; errors come back as `{ error }`.
 
 ## Design system
 
@@ -150,7 +133,13 @@ components/ui/       pill, inline Signup, Marquee, Reveal, Drift
 components/layout/   header, footer, route wipe, header CTA
 components/home|drops|crew|delivery/   page sections
 lib/hero.ts          hero color per route (nav contrast + wipe color)
-lib/store.ts         typed data layer (localStorage today)
+lib/store.ts         DataStore interface + localStorage implementation
+lib/store.http.ts    DataStore over the /api routes (default)
+lib/db.ts            Neon client, server only
+lib/api.ts           route-handler helpers (visitor header, validation, errors)
+app/api/             route handlers, one per table
+db/schema.sql        Postgres schema
+scripts/db.ts        npm run db:migrate / db:seed
 lib/seed.ts          demo data
 lib/analytics.ts     track() and the event log
 lib/data/            stores, seasonal drops, categories
