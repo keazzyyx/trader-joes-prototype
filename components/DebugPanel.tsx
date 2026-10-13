@@ -77,7 +77,7 @@ export function DebugPanel() {
     <div className="bg-cream px-5 pt-36 pb-24 sm:px-8 sm:pt-40">
       <h1 className="display text-[16vw] leading-[0.85] sm:text-[10vw]">Back office</h1>
       <p className="mt-6 max-w-[60ch] text-[17px] leading-snug">
-        Everything the prototype has stored, from every visitor, and every conversion event fired. Rows you created from this browser are in red. The rest is seeded demo data and other people.
+        Everything the prototype has stored, from every visitor, and every conversion event fired. Rows you created from this browser are in red. Demo rows, if any were seeded, are left out.
       </p>
       <p className="label mt-3 opacity-70">Visitor id {data.visitor}</p>
       <div className="mt-8 flex flex-wrap gap-4">
@@ -95,12 +95,17 @@ export function DebugPanel() {
           type="button"
           className="display min-h-16 text-[22px] underline decoration-[3px] underline-offset-[6px]"
           onClick={async () => {
-            if (!confirm("Wipe every row for every visitor and reload the demo data?")) return;
-            await store.reset();
-            load();
+            const token = prompt("This wipes every row for every visitor. Enter the reset token to continue.");
+            if (!token) return;
+            try {
+              await store.reset(token);
+              load();
+            } catch (e) {
+              alert(e instanceof Error ? e.message : "Reset failed");
+            }
           }}
         >
-          Reset to seed data
+          Wipe everything
         </button>
       </div>
 

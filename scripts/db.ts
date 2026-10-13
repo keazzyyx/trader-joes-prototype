@@ -19,6 +19,7 @@ if (!url) {
 const sql = neon(url);
 const cmd = process.argv[2];
 
+async function main() {
 if (cmd === "migrate") {
   const schema = readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8");
   // The HTTP driver runs one statement per call, so split on blank-line-separated statements.
@@ -27,6 +28,10 @@ if (cmd === "migrate") {
   }
   console.log("Schema applied.");
 } else if (cmd === "seed") {
+  if (process.env.SEED_DEMO !== "1") {
+    console.error("Refusing to seed: this writes demo rows into whatever DATABASE_URL points at. Run with SEED_DEMO=1 if that database is not production.");
+    process.exit(1);
+  }
   await seedDatabase(sql, SEED);
   const [{ n }] = (await sql`select count(*)::int as n from subscribers`) as { n: number }[];
   console.log(`Seeded. ${n} subscribers in the table.`);
@@ -34,3 +39,9 @@ if (cmd === "migrate") {
   console.error("Usage: tsx scripts/db.ts migrate|seed");
   process.exit(1);
 }
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

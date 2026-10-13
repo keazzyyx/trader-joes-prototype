@@ -20,7 +20,8 @@ export const GET = handle(async (req) => {
     const rows = (await sql`select * from members where visitor_id = ${visitorFrom(req)} limit 1`) as MemberRow[];
     return rows[0] ? shape(rows[0]) : null;
   }
-  const rows = (await sql`select * from members order by created_at desc limit 500`) as MemberRow[];
+  const demo = new URL(req.url).searchParams.has("demo");
+  const rows = (await sql`select * from members where demo = false or ${demo} order by created_at desc limit 500`) as MemberRow[];
   return rows.map(shape);
 });
 
@@ -34,7 +35,7 @@ export const POST = handle(async (req) => {
   const birth = typeof body.birthMonth === "number" && body.birthMonth >= 1 && body.birthMonth <= 12 ? body.birthMonth : null;
 
   const visitor = visitorFrom(req);
-  const [{ n }] = (await sql`select count(*)::int as n from members`) as { n: number }[];
+  const [{ n }] = (await sql`select count(*)::int as n from members where demo = false`) as { n: number }[];
   const number = `CC-${new Date().getFullYear().toString().slice(2)}-${(41_200 + n * 7 + Math.floor(Math.random() * 7)).toString().padStart(6, "0")}`;
   const rows = (await sql`
     insert into members (member_number, email, birth_month, store_id, categories, visitor_id)

@@ -109,8 +109,8 @@ export const httpStore: DataStore = {
     },
   },
 
-  async reset() {
-    await call("reset", { method: "POST" });
+  async reset(token) {
+    await call(`reset?token=${encodeURIComponent(token ?? "")}`, { method: "POST" });
     if (hasWindow()) window.localStorage.removeItem(STORE_KEYS.email);
     changed();
   },

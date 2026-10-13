@@ -6,7 +6,7 @@ The site has one job: turn visitors into **Fearless Flyer** subscribers and **Cr
 for **delivery** and **seasonal drops**. Every page ends in one of those conversions.
 
 Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Framer Motion · Neon Postgres behind `/api` route handlers.
-One environment variable: `DATABASE_URL`.
+Two environment variables: `DATABASE_URL` (set by the Neon integration) and `RESET_TOKEN` (guards `/api/reset`).
 
 The visual direction is a poster, not an app: full-bleed flat color bands, one condensed display face in caps, product
 cutouts floating on the color with nothing behind them. It was built from notes taken off paputmenorca.com; see
@@ -18,13 +18,15 @@ cutouts floating on the color with nothing behind them. It was built from notes 
 npm install
 vercel integration add neon   # once: creates the Neon project and sets DATABASE_URL on Vercel
 vercel env pull .env.local    # copies DATABASE_URL here for local dev
-npm run db:migrate            # creates the tables (db/schema.sql)
-npm run db:seed               # loads the demo rows
-npm run dev                   # http://localhost:3000
-vercel deploy --prod
+npm run db:migrate            # creates the tables (db/schema.sql); safe to re-run
+npm run dev                   # http://localhost:3000, against the real database
+git push                      # main auto-deploys (the Vercel project is connected to GitHub)
 ```
 
-No database yet? `NEXT_PUBLIC_DATA_BACKEND=local npm run dev` runs everything against localStorage instead.
+The one Neon database serves development, preview and production, so it holds **real conversion data only**. Demo rows
+are never seeded into it. For a seeded playground use local mode: `npm run dev:local` runs everything against
+localStorage with the demo rows from `lib/seed.ts`. (`SEED_DEMO=1 npm run db:seed` will load the demo rows into whatever
+`DATABASE_URL` points at, flagged `demo = true` so lists and counts leave them out. Don't point it at production.)
 
 ## Routes
 
@@ -33,7 +35,7 @@ No database yet? `NEXT_PUBLIC_DATA_BACKEND=local npm run dev` runs everything ag
 | `/` | Data-driven cream hero: the next upcoming drop's name, "is back in", and a live countdown that flips digit by digit ("lands today" on the day; a fallback line if nothing is coming). "Tell me when" subscribes and sets a drop alert in one go. Then a red "The Crew hears first" section, a yellow marquee, the four "why it's different" statements on green, the six regulars as cutouts on cream, the 2026 Customer Choice Awards on yellow, a red signup band | Fearless Flyer, drop alert, Crew Club |
 | `/drops` | Green hero, then the eleven seasonal items as cutouts in a two-column staggered layout: in stores now, live countdowns in the display face, "GONE" stamped across sold-out items. Text-link filters (All / This week / Coming up / Sold out). "Notify me" expands an inline email field | Drop alerts, Crew Club |
 | `/crew-club` | Yellow hero, "No points. No tiers. No discounts." Three stacked full-bleed steps (email, home store, three favorite aisles), each unlocking the next. Finishing prints a red full-bleed section with the member number at 20vw. Remembered on return visits | Crew Club |
-| `/delivery` | Cream hero, "Coming soon to your door", then four full-bleed alternating color sections with a line drawing and one sentence each, a plain-language Q&A, and a store waitlist with a live neighbor counter | Delivery waitlist |
+| `/delivery` | Cream hero, "Coming soon to your door", then four full-bleed alternating color sections with a line drawing and one sentence each, a plain-language Q&A, and a store waitlist whose neighbor count is the real number of signups for that store | Delivery waitlist |
 | `/debug` | Hidden (not linked, `noindex`). Every row from every visitor, every tracked event and a funnel chart, read live from Neon. Can download everything as JSON or reset to seed data | — |
 
 The **Get the Fearless Flyer** pill in the header scrolls to the nearest Flyer input on the page and focuses it.
@@ -90,8 +92,9 @@ window event and `useStoreValue()` in `lib/hooks.ts` re-reads on it.
 ### Schema
 
 `db/schema.sql`: `subscribers`, `drop_alerts` (unique on drop + email), `members` (unique on visitor), `waitlist`
-(unique on store + email), and `events` (every `track()` call, as GA4-shaped params in `jsonb`). `npm run db:migrate`
-applies it; it's idempotent. `npm run db:seed` loads the demo rows and skips anything already there.
+(unique on store + email), and `events` (every `track()` call, as GA4-shaped params in `jsonb`). The four conversion
+tables carry a `demo` flag; lists and counts exclude flagged rows unless asked (`?demo=1`). `npm run db:migrate`
+applies the schema; it's idempotent.
 
 ### Endpoints
 
@@ -102,7 +105,7 @@ applies it; it's idempotent. `npm run db:seed` loads the demo rows and skips any
 | `/api/members` | GET, GET `?mine`, POST, DELETE `?mine` | POST validates store and three categories, mints the member number |
 | `/api/waitlist` | GET, GET `?mine`, GET `?count=<storeId>`, POST | |
 | `/api/events` | GET, GET `?mine`, POST, DELETE `?mine` | what `/debug` reads |
-| `/api/reset` | POST | truncates everything and reseeds. Set `RESET_TOKEN` to require `?token=` |
+| `/api/reset` | POST `?token=` | truncates every table. Refuses unless `RESET_TOKEN` is set and matches; the `/debug` button prompts for it |
 
 Every list is capped (500–1000 rows) and every write validates its input server-side; errors come back as `{ error }`.
 

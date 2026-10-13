@@ -69,8 +69,8 @@ export interface DataStore {
     /** Forgets this visitor's events. */
     clear(): Promise<void>;
   };
-  /** Wipes everything and reseeds the demo data. */
-  reset(): Promise<void>;
+  /** Wipes everything. The Neon store requires the RESET_TOKEN; the local store reseeds demo data. */
+  reset(token?: string): Promise<void>;
 }
 
 /* ---------- localStorage implementation ---------- */

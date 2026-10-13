@@ -10,7 +10,8 @@ export const GET = handle(async (req) => {
     const rows = (await sql`select 1 from subscribers where visitor_id = ${visitorFrom(req)} limit 1`) as unknown[];
     return { subscribed: rows.length > 0 };
   }
-  const rows = (await sql`select * from subscribers order by created_at desc limit 500`) as SubscriberRow[];
+  const demo = url.searchParams.has("demo");
+  const rows = (await sql`select * from subscribers where demo = false or ${demo} order by created_at desc limit 500`) as SubscriberRow[];
   return rows.map(shape);
 });
 

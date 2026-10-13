@@ -1,17 +1,12 @@
 import { db } from "@/lib/db";
-import { handle } from "@/lib/api";
-import { SEED } from "@/lib/seed";
-import { seedDatabase } from "@/lib/seed-db";
+import { ApiError, handle } from "@/lib/api";
 
-/**
- * Wipes every table and reloads the demo rows. It's a class prototype with a public /debug page,
- * so this is deliberately open; set RESET_TOKEN in the environment to require ?token=.
- */
+/** Wipes every table. Requires RESET_TOKEN to be set and passed as ?token=; refuses otherwise. */
 export const POST = handle(async (req) => {
   const token = process.env.RESET_TOKEN;
-  if (token && new URL(req.url).searchParams.get("token") !== token) return { error: "Nope" };
+  if (!token) throw new ApiError(403, "Reset is disabled: RESET_TOKEN is not set.");
+  if (new URL(req.url).searchParams.get("token") !== token) throw new ApiError(403, "Wrong reset token.");
   const sql = db();
   await sql`truncate subscribers, drop_alerts, members, waitlist, events`;
-  await seedDatabase(sql, SEED);
   return { ok: true };
 });

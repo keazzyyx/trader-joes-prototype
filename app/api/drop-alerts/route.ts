@@ -13,10 +13,11 @@ export const GET = handle(async (req) => {
   }
   const count = url.searchParams.get("count");
   if (count) {
-    const rows = (await sql`select count(*)::int as n from drop_alerts where drop_id = ${count}`) as { n: number }[];
+    const rows = (await sql`select count(*)::int as n from drop_alerts where drop_id = ${count} and demo = false`) as { n: number }[];
     return { count: rows[0]?.n ?? 0 };
   }
-  const rows = (await sql`select * from drop_alerts order by created_at desc limit 500`) as DropAlertRow[];
+  const demo = url.searchParams.has("demo");
+  const rows = (await sql`select * from drop_alerts where demo = false or ${demo} order by created_at desc limit 500`) as DropAlertRow[];
   return rows.map(shape);
 });
 

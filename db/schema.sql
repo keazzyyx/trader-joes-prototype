@@ -50,3 +50,9 @@ create table if not exists events (
   created_at  timestamptz not null default now()
 );
 create index if not exists events_client on events (client_id, created_at desc);
+
+-- Demo rows (from npm run db:seed) are flagged so lists and counts can leave them out.
+alter table subscribers add column if not exists demo boolean not null default false;
+alter table drop_alerts add column if not exists demo boolean not null default false;
+alter table members     add column if not exists demo boolean not null default false;
+alter table waitlist    add column if not exists demo boolean not null default false;

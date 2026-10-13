@@ -8,42 +8,21 @@ import { pill } from "@/components/ui/pill";
 import { Headline } from "@/components/ui/Reveal";
 import { Arrow } from "@/components/art/Doodles";
 
-/** A stable baseline per store so each neighborhood has its own number. */
-function baseline(storeId: string) {
-  let h = 0;
-  for (const c of storeId) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return 140 + (h % 360);
-}
-
 export function Waitlist() {
   const id = useId();
   const [storeId, setStoreId] = useState(STORES[0].id);
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [drift, setDrift] = useState({ storeId: "", n: 0 });
   const real = useStoreValue(() => store.waitlist.countFor(storeId), [storeId]) ?? 0;
   const mine = useStoreValue(() => store.waitlist.mine()) ?? [];
   const joined = mine.includes(storeId);
   const s = storeById(storeId)!;
-  const count = baseline(storeId) + real + (drift.storeId === storeId ? drift.n : 0);
+  const count = real;
 
   useEffect(() => {
     setEmail(store.knownEmail() ?? "");
     store.members.current().then((m) => m && setStoreId(m.storeId));
   }, []);
-
-  // Neighbors keep trickling in while you read. Fake, but it's a prototype.
-  useEffect(() => {
-    let t: ReturnType<typeof setTimeout>;
-    const tick = () => {
-      t = setTimeout(() => {
-        setDrift((d) => ({ storeId, n: d.storeId === storeId ? d.n + 1 : 1 }));
-        tick();
-      }, 3500 + Math.random() * 5000);
-    };
-    tick();
-    return () => clearTimeout(t);
-  }, [storeId]);
 
   async function join(e: React.FormEvent) {
     e.preventDefault();
@@ -65,7 +44,7 @@ export function Waitlist() {
       <div className="mt-12 grid gap-12 lg:grid-cols-[1fr_1fr] lg:items-end">
         <div aria-live="polite">
           <p className="display text-[26vw] leading-[0.85] text-yellow tabular-nums sm:text-[14vw]">{count.toLocaleString("en-US")}</p>
-          <p className="mt-3 max-w-[24ch] text-[19px] leading-snug">neighbors near {s.name} are already waiting</p>
+          <p className="mt-3 max-w-[24ch] text-[19px] leading-snug">{count === 1 ? "neighbor" : "neighbors"} near {s.name} {count === 1 ? "is" : "are"} already waiting</p>
         </div>
         <div className="max-w-[640px]">
           <label htmlFor={`${id}-store`} className="label">
