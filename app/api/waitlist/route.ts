@@ -11,6 +11,15 @@ export const GET = handle(async (req) => {
     const rows = (await sql`select store_id from waitlist where visitor_id = ${visitorFrom(req)}`) as { store_id: string }[];
     return rows.map((r) => r.store_id);
   }
+  const pos = url.searchParams.get("position");
+  if (pos) {
+    const rows = (await sql`
+      select count(*)::int as n from waitlist w
+      where w.store_id = ${pos} and w.demo = false
+        and w.created_at <= (select created_at from waitlist where store_id = ${pos} and visitor_id = ${visitorFrom(req)} limit 1)`) as { n: number }[];
+    const n = rows[0]?.n ?? 0;
+    return { position: n > 0 ? n : null };
+  }
   const count = url.searchParams.get("count");
   if (count) {
     const rows = (await sql`select count(*)::int as n from waitlist where store_id = ${count} and demo = false and visitor_id not in (select visitor_id from internal_visitors)`) as { n: number }[];

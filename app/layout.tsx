@@ -3,6 +3,7 @@ import { Anton, Work_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/layout/Providers";
 import { Tracking } from "@/components/layout/Tracking";
+import { DemoBar } from "@/components/layout/DemoBar";
 import { Suspense } from "react";
 
 const anton = Anton({ variable: "--font-anton", subsets: ["latin"], weight: "400", display: "swap" });
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Suspense fallback={null}>
             <Tracking />
           </Suspense>
+          <DemoBar />
         </Providers>
       </body>
     </html>

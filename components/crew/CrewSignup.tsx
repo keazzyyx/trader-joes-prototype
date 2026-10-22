@@ -10,6 +10,7 @@ import { Headline } from "@/components/ui/Reveal";
 import { WipeLink } from "@/components/layout/Wipe";
 import { SignupCta } from "@/components/layout/SignupCta";
 import { Arrow, Smiley } from "@/components/art/Doodles";
+import { WhatHappensNext } from "./WhatHappensNext";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -76,6 +77,7 @@ export function CrewSignup() {
           Keeps an eye on {member.categories.map(categoryLabel).join(", ")}.
           {member.birthMonth ? ` Birthday treat goes out in ${MONTHS[member.birthMonth - 1]}.` : ""}
         </p>
+        <WhatHappensNext member={member} />
         <div className="mt-10 flex flex-wrap items-center gap-6">
           <WipeLink href="/drops" className={pill("red")}>
             See what’s dropping next

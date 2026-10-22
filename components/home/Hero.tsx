@@ -8,6 +8,7 @@ import { track } from "@/lib/analytics";
 import { pill } from "@/components/ui/pill";
 import { FlipText } from "@/components/ui/FlipText";
 import { JoinCrewLink } from "@/components/ui/JoinCrewLink";
+import { FlyerPreview } from "@/components/ui/FlyerPreview";
 
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
@@ -146,6 +147,7 @@ function TellMeWhen({ drop, at, now }: { drop: Drop | null; at: Date | null; now
           {error}
         </p>
       )}
+      {sent && <FlyerPreview />}
     </form>
   );
 }

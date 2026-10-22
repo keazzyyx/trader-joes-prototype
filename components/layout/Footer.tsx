@@ -29,7 +29,10 @@ export function Footer() {
             </ul>
           </nav>
         </div>
-        <div className="mt-16 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        <WipeLink href="/insights" className="display mt-14 inline-flex min-h-14 items-center text-[26px] leading-none text-yellow underline decoration-[3px] underline-offset-[6px] sm:text-[32px]">
+          For Trader Joe’s: see what this site learns
+        </WipeLink>
+        <div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <p className="max-w-[60ch] text-[15px] font-semibold">
             Student prototype for BENI 370 at the University of San Francisco. Not affiliated with Trader Joe’s.
           </p>

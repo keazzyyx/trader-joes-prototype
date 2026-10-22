@@ -16,6 +16,7 @@ export function Waitlist() {
   const real = useStoreValue(() => store.waitlist.countFor(storeId), [storeId]) ?? 0;
   const mine = useStoreValue(() => store.waitlist.mine()) ?? [];
   const joined = mine.includes(storeId);
+  const position = useStoreValue(() => (joined ? store.waitlist.position(storeId) : Promise.resolve(null)), [storeId, joined]);
   const s = storeById(storeId)!;
   const count = real;
 
@@ -72,6 +73,12 @@ export function Waitlist() {
           {joined ? (
             <div className="mt-8" aria-live="polite">
               <p className="display text-[9vw] leading-[0.92] sm:text-[3.6vw]">You’re on the {s.name} list.</p>
+              {position != null && (
+                <p className="mt-4">
+                  <span className="label opacity-70">Preview</span>
+                  <span className="display mt-1 block text-[14vw] leading-[0.9] text-yellow sm:text-[6vw]">You’re #{position} at {s.name}</span>
+                </p>
+              )}
               <p className="mt-3 text-[17px] leading-relaxed opacity-85">We’ll email you once, when delivery is real at {s.address}. No spam in between. Promise.</p>
             </div>
           ) : (

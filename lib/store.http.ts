@@ -100,6 +100,7 @@ export const httpStore: DataStore = {
     list: () => call<WaitlistEntry[]>("waitlist"),
     countFor: async (storeId) => (await call<{ count: number }>(`waitlist?count=${encodeURIComponent(storeId)}`)).count,
     mine: () => call<string[]>("waitlist?mine=1"),
+    position: async (storeId) => (await call<{ position: number | null }>(`waitlist?position=${encodeURIComponent(storeId)}`)).position,
   },
 
   events: {

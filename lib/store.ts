@@ -63,6 +63,8 @@ export interface DataStore {
     countFor(storeId: string): Promise<number>;
     /** Store ids this visitor has joined. */
     mine(): Promise<string[]>;
+    /** This visitor's place in a store's list (1 = first), or null if not on it. */
+    position(storeId: string): Promise<number | null>;
   };
   events: {
     /** Records a tracked event. Must never throw into the caller. */
@@ -251,6 +253,14 @@ export const localStore: DataStore = {
       return table<WaitlistEntry>(KEYS.waitlist)
         .filter((r) => r.visitorId === me)
         .map((r) => r.storeId);
+    },
+    async position(storeId) {
+      const me = visitorId();
+      const rows = table<WaitlistEntry>(KEYS.waitlist)
+        .filter((r) => r.storeId === storeId)
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+      const i = rows.findIndex((r) => r.visitorId === me);
+      return i < 0 ? null : i + 1;
     },
   },
 

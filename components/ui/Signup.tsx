@@ -4,6 +4,7 @@ import { isEmail, store, type Source } from "@/lib/store";
 import { track } from "@/lib/analytics";
 import type { Tone } from "@/lib/hero";
 import { pill } from "./pill";
+import { FlyerPreview } from "./FlyerPreview";
 
 const FIELD: Record<Tone, string> = {
   cream: "bg-yellow",
@@ -67,6 +68,7 @@ export function Signup({
         <p className="mt-4 max-w-[46ch] text-[16px] opacity-80">
           {state === "already" ? "Nothing else to do here. Go poke around the seasonal drops." : "Look for the one with the little boat in the corner."}
         </p>
+        <FlyerPreview on={on === "red" ? "red" : "cream"} />
       </div>
     );
   }

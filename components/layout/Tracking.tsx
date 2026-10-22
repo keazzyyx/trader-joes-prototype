@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { captureUtm, isInternal, referrerDomain, setInternal } from "@/lib/attribution";
 import { markInternal, recordPageView } from "@/lib/tracking";
+import { setDemo } from "./DemoBar";
 
 /** Records one page view per route, handles ?internal= and ?utm_source=, and shows the INTERNAL badge. */
 export function Tracking() {
@@ -16,6 +17,8 @@ export function Tracking() {
       setInternal(flag === "1");
       markInternal(flag === "1");
     }
+    const demo = search.get("demo");
+    if (demo === "1" || demo === "0") setDemo(demo === "1");
     setInternalState(isInternal());
     const utm = captureUtm(search.toString());
     recordPageView(pathname, referrerDomain(), utm);
@@ -29,7 +32,7 @@ export function Tracking() {
 
   if (!internal) return null;
   return (
-    <p aria-live="polite" className="display pointer-events-none fixed bottom-3 left-3 z-[90] bg-yellow px-3 py-1.5 text-[16px] leading-none text-ink">
+    <p aria-live="polite" className="display pointer-events-none fixed bottom-16 left-3 z-[90] bg-yellow px-3 py-1.5 text-[16px] leading-none text-ink">
       Internal
     </p>
   );
