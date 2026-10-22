@@ -17,13 +17,16 @@ cutouts floating on the color with nothing behind them. It was built from notes 
 ```bash
 npm install
 vercel integration add neon   # once: creates the Neon project and sets DATABASE_URL on Vercel
-vercel env pull .env.local    # copies DATABASE_URL here for local dev
+vercel env pull .env.local    # copies DATABASE_URL here; for local dev point it at a Neon branch instead (see below)
 npm run db:migrate            # creates the tables (db/schema.sql); safe to re-run
 npm run dev                   # http://localhost:3000, against the real database
 git push                      # main auto-deploys (the Vercel project is connected to GitHub)
 ```
 
-The one Neon database serves development, preview and production, so it holds **real conversion data only**. Demo rows
+Production is the Neon `main` branch and holds **real conversion data only**. Local development runs against the `dev`
+branch (`npx neonctl@latest connection-string dev --pooled`, put that in `.env.local` as `DATABASE_URL`; the production
+string is kept there as `DATABASE_URL_PROD`). `e2e/*.mjs` are Playwright flows that run against `next start -p 4174`
+on that branch. Any check against production uses `?internal=1` so it never counts. Demo rows
 are never seeded into it. For a seeded playground use local mode: `npm run dev:local` runs everything against
 localStorage with the demo rows from `lib/seed.ts`. (`SEED_DEMO=1 npm run db:seed` will load the demo rows into whatever
 `DATABASE_URL` points at, flagged `demo = true` so lists and counts leave them out. Don't point it at production.)
@@ -36,7 +39,16 @@ localStorage with the demo rows from `lib/seed.ts`. (`SEED_DEMO=1 npm run db:see
 | `/drops` | Green hero, then the eleven seasonal items as cutouts in a two-column staggered layout: in stores now, live countdowns in the display face, "GONE" stamped across sold-out items. Text-link filters (All / This week / Coming up / Sold out). "Notify me" expands an inline email field | Drop alerts, Crew Club |
 | `/crew-club` | Yellow hero, "No points. No tiers. No discounts." Three stacked full-bleed steps (email, home store, three favorite aisles), each unlocking the next. Finishing prints a red full-bleed section with the member number at 20vw. Remembered on return visits | Crew Club |
 | `/delivery` | Cream hero, "Coming soon to your door", then four full-bleed alternating color sections with a line drawing and one sentence each, a plain-language Q&A, and a store waitlist whose neighbor count is the real number of signups for that store | Delivery waitlist |
-| `/debug` | Hidden (not linked, `noindex`). Every row from every visitor, every tracked event and a funnel chart, read live from Neon. Can download everything as JSON or reset to seed data | — |
+| `/tag/[product]?store=[store]` | What a shopper sees after scanning the QR on an empty shelf: the drawing with the GONE stamp (or countdown), one email field, one button. The stamp flips to YOU'RE ON THE LIST, a phone-notification preview slides in, the real per-store waiting count shows at 5+. After the first email, every Notify is one tap labelled with the store. Store accepts `masonic` or `sf-masonic` | Drop alert |
+| `/tag/[product]/print?store=` | Letter-size printable shelf talker with a real QR to the tag page (`utm_source=shelf`) | — |
+| `/present` | Full-screen presenter page: giant QR to the tag page (`utm_source=class`, override product with `?product=`), and today's class counters refreshed every 5 s | — |
+| `/insights` | Manager page, real Neon data refreshed every 5 s: plain-English findings (after 15 unique visitors), big numbers, most-wanted drops, where delivery should start, Crew Club drop-off, favorite aisles, visits by source. Linked from the footer | — |
+| `/debug` | Hidden (not linked, `noindex`). Every row from every visitor, every tracked event and a funnel chart, read live from Neon. Can download everything as JSON or wipe with the reset token | — |
+
+**Query flags** on any page: `?internal=1` marks this browser as internal (rows and events excluded from every count on
+/insights, /present and /debug; an INTERNAL badge shows), `?internal=0` undoes it. `?demo=1` pins a five-step demo bar to
+the bottom that checks off as the browser completes each step; `?demo=0` hides it. `?utm_source=` is remembered for the
+session and attached to page views and events.
 
 The **Get the Fearless Flyer** pill in the header scrolls to the nearest Flyer input on the page and focuses it.
 
@@ -57,6 +69,10 @@ The **Get the Fearless Flyer** pill in the header scrolls to the nearest Flyer i
 | `delivery_waitlist_joined` | Someone joins a store's delivery waitlist | `store_id`, `store_name`, `city`, `waitlist_position` |
 | `shelf_section_viewed` | The famous-regulars shelf on `/` scrolls into view (once per page view) | `section`, `items` |
 | `crew_cta_clicked` | The cream "Join the Crew" pill on the home page's red section | `cta_location` |
+| `crew_step_completed` | Each Crew Club step | `step: 1 \| 2 \| 3` |
+
+Tag-page alerts also carry `store_id`, `one_tap` and `scan_to_signup_ms` (page load to submit). Page views are not
+events: one row per visitor per path lands in `page_views` with referrer and `utm_source`.
 | `cta_drawer_opened` | The header pill (or any "send me the Flyer" text link) scrolls to a signup input. The name is kept from the first version so the funnel history stays comparable | `cta_location`, `action: "scroll_to_signup"` |
 
 To send to GA4 for real, replace the `console.log` in `track()` with a `gtag("event", name, params)` call or a POST to
@@ -91,8 +107,9 @@ window event and `useStoreValue()` in `lib/hooks.ts` re-reads on it.
 
 ### Schema
 
-`db/schema.sql`: `subscribers`, `drop_alerts` (unique on drop + email), `members` (unique on visitor), `waitlist`
-(unique on store + email), and `events` (every `track()` call, as GA4-shaped params in `jsonb`). The four conversion
+`db/schema.sql`: `subscribers`, `drop_alerts` (unique on drop + email, with the store it came from), `members` (unique
+on visitor), `waitlist` (unique on store + email), `events` (every `track()` call, as GA4-shaped params in `jsonb`),
+`page_views` (one per visitor per path) and `internal_visitors` (browsers flagged with `?internal=1`). The four conversion
 tables carry a `demo` flag; lists and counts exclude flagged rows unless asked (`?demo=1`). `npm run db:migrate`
 applies the schema; it's idempotent.
 
@@ -105,6 +122,10 @@ applies the schema; it's idempotent.
 | `/api/members` | GET, GET `?mine`, POST, DELETE `?mine` | POST validates store and three categories, mints the member number |
 | `/api/waitlist` | GET, GET `?mine`, GET `?count=<storeId>`, POST | |
 | `/api/events` | GET, GET `?mine`, POST, DELETE `?mine` | what `/debug` reads |
+| `/api/page-views` | POST | one row per visitor per path |
+| `/api/internal` | POST, DELETE | flag / unflag this browser as internal |
+| `/api/insights` | GET | everything `/insights` shows, computed in Postgres |
+| `/api/present` | GET | today's `utm_source=class` counters |
 | `/api/reset` | POST `?token=` | truncates every table. Refuses unless `RESET_TOKEN` is set and matches; the `/debug` button prompts for it |
 
 Every list is capped (500–1000 rows) and every write validates its input server-side; errors come back as `{ error }`.
