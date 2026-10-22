@@ -32,7 +32,7 @@ export function Tracking() {
 
   if (!internal) return null;
   return (
-    <p aria-live="polite" className="display pointer-events-none fixed bottom-16 left-3 z-[90] bg-yellow px-3 py-1.5 text-[16px] leading-none text-ink">
+    <p aria-live="polite" className="display pointer-events-none fixed top-[76px] right-3 z-[90] bg-yellow px-3 py-1.5 text-[15px] leading-none text-ink sm:top-[90px]">
       Internal
     </p>
   );

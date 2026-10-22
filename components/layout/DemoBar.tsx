@@ -56,14 +56,22 @@ export function DemoBar() {
     };
   }, [on, pathname]);
 
+  // Reserve room at the bottom of the page while the bar is pinned.
+  useEffect(() => {
+    document.body.style.paddingBottom = on ? "52px" : "";
+    return () => {
+      document.body.style.paddingBottom = "";
+    };
+  }, [on]);
+
   if (!on) return null;
   return (
     <nav aria-label="Demo steps" className="fixed inset-x-0 bottom-0 z-[85] bg-ink text-cream">
-      <ol className="no-scrollbar flex items-center gap-5 overflow-x-auto px-4 py-2 sm:justify-center sm:gap-8">
+      <ol className="no-scrollbar flex items-center gap-4 overflow-x-auto px-3 py-2 sm:justify-center sm:gap-8 sm:px-6">
         {STEPS.map((s, i) => (
           <li key={s.n} className="shrink-0">
-            <WipeLink href={s.href} className={`display inline-flex min-h-10 items-center gap-2 text-[18px] leading-none ${done[i] ? "text-yellow" : pathname === s.href ? "text-cream" : "text-cream/60 hover:text-cream"}`}>
-              <span aria-hidden className={`grid size-6 place-items-center text-[14px] ${done[i] ? "bg-yellow text-ink" : "bg-cream/20"}`}>
+            <WipeLink href={s.href} className={`display inline-flex min-h-9 items-center gap-1.5 text-[15px] leading-none sm:text-[18px] ${done[i] ? "text-yellow" : pathname === s.href ? "text-cream" : "text-cream/60 hover:text-cream"}`}>
+              <span aria-hidden className={`grid size-5 place-items-center text-[12px] sm:size-6 sm:text-[14px] ${done[i] ? "bg-yellow text-ink" : "bg-cream/20"}`}>
                 {done[i] ? "✓" : s.n}
               </span>
               <span>{done[i] ? <span className="sr-only">Done: </span> : null}{s.label}</span>
