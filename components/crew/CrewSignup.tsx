@@ -36,6 +36,7 @@ export function CrewSignup() {
     if (!isEmail(email) || !storeId || cats.length !== 3) return;
     try {
       const m = await store.members.create({ email, birthMonth, storeId, categories: cats });
+      track("crew_step_completed", { step: 3 });
       track("crew_club_completed", { member_id: m.id, store_id: storeId, store_name: storeById(storeId)?.name, categories: cats, has_birth_month: birthMonth !== null });
       setFailure(null);
       setFresh(true);
@@ -96,8 +97,16 @@ export function CrewSignup() {
 
   return (
     <div id="join">
-      <StepEmail email={email} setEmail={setEmail} birthMonth={birthMonth} setBirthMonth={setBirthMonth} ok={ok1} onNext={() => scrollTo("step-2")} />
-      <StepStore storeId={storeId} setStoreId={setStoreId} locked={!ok1} ok={ok2} onNext={() => scrollTo("step-3")} />
+      <StepEmail email={email} setEmail={setEmail} birthMonth={birthMonth} setBirthMonth={setBirthMonth} ok={ok1} onNext={() => {
+          track("crew_step_completed", { step: 1 });
+          scrollTo("step-2");
+        }}
+      />
+      <StepStore storeId={storeId} setStoreId={setStoreId} locked={!ok1} ok={ok2} onNext={() => {
+          track("crew_step_completed", { step: 2 });
+          scrollTo("step-3");
+        }}
+      />
       <StepCats cats={cats} setCats={setCats} locked={!ok2} ok={ok3} onFinish={finish} failure={failure} />
     </div>
   );

@@ -56,3 +56,28 @@ alter table subscribers add column if not exists demo boolean not null default f
 alter table drop_alerts add column if not exists demo boolean not null default false;
 alter table members     add column if not exists demo boolean not null default false;
 alter table waitlist    add column if not exists demo boolean not null default false;
+
+-- Part 1: tracking foundations.
+create table if not exists page_views (
+  id          bigserial primary key,
+  visitor_id  text not null,
+  path        text not null,
+  referrer    text,
+  utm_source  text,
+  created_at  timestamptz not null default now(),
+  unique (visitor_id, path)
+);
+create index if not exists page_views_created on page_views (created_at desc);
+
+-- Browsers flagged with ?internal=1. Every count leaves their rows out.
+create table if not exists internal_visitors (
+  visitor_id  text primary key,
+  created_at  timestamptz not null default now()
+);
+
+alter table events add column if not exists utm_source text;
+create index if not exists events_name_created on events (name, created_at desc);
+
+-- Part 2: shelf tags. Which store a drop alert came from, when known.
+alter table drop_alerts add column if not exists store_id text;
+create index if not exists drop_alerts_drop_store on drop_alerts (drop_id, store_id);

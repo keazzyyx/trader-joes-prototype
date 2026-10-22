@@ -21,7 +21,7 @@ export const GET = handle(async (req) => {
     return rows[0] ? shape(rows[0]) : null;
   }
   const demo = new URL(req.url).searchParams.has("demo");
-  const rows = (await sql`select * from members where demo = false or ${demo} order by created_at desc limit 500`) as MemberRow[];
+  const rows = (await sql`select * from members where (demo = false or ${demo}) and visitor_id not in (select visitor_id from internal_visitors) order by created_at desc limit 500`) as MemberRow[];
   return rows.map(shape);
 });
 

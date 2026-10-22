@@ -5,6 +5,7 @@
  * the funnel in class. Add a gtag() call or a Measurement Protocol POST here later.
  */
 import { store } from "./store";
+import { isInternal, utmSource } from "./attribution";
 
 export type TrackEvent =
   | "flyer_signup_submitted"
@@ -13,7 +14,8 @@ export type TrackEvent =
   | "delivery_waitlist_joined"
   | "shelf_section_viewed"
   | "cta_drawer_opened"
-  | "crew_cta_clicked";
+  | "crew_cta_clicked"
+  | "crew_step_completed";
 
 export type TrackParams = Record<string, string | number | boolean | string[] | null | undefined>;
 
@@ -51,6 +53,8 @@ export function track(event: TrackEvent, props: TrackParams = {}): Ga4Payload | 
         params: {
           ...props,
           session_id: sessionId(),
+          utm_source: utmSource(),
+          internal: isInternal(),
           engagement_time_msec: Math.round(performance.now()),
           page_location: window.location.href,
           page_title: document.title,

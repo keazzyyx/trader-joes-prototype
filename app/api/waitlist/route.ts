@@ -13,11 +13,11 @@ export const GET = handle(async (req) => {
   }
   const count = url.searchParams.get("count");
   if (count) {
-    const rows = (await sql`select count(*)::int as n from waitlist where store_id = ${count} and demo = false`) as { n: number }[];
+    const rows = (await sql`select count(*)::int as n from waitlist where store_id = ${count} and demo = false and visitor_id not in (select visitor_id from internal_visitors)`) as { n: number }[];
     return { count: rows[0]?.n ?? 0 };
   }
   const demo = url.searchParams.has("demo");
-  const rows = (await sql`select * from waitlist where demo = false or ${demo} order by created_at desc limit 500`) as WaitlistRow[];
+  const rows = (await sql`select * from waitlist where (demo = false or ${demo}) and visitor_id not in (select visitor_id from internal_visitors) order by created_at desc limit 500`) as WaitlistRow[];
   return rows.map(shape);
 });
 

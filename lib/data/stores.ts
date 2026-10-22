@@ -40,3 +40,15 @@ export function searchStores(query: string): Store[] {
     [s.name, s.address, s.city, s.neighborhood].some((f) => f.toLowerCase().includes(q)),
   );
 }
+
+/** Accepts a full id ("sf-masonic"), the part after the city prefix ("masonic"), or a name ("Masonic Ave"). */
+export function resolveStore(q: string | null | undefined): Store | undefined {
+  if (!q) return undefined;
+  const k = q.trim().toLowerCase().replace(/\s+/g, "-");
+  return (
+    STORES.find((s) => s.id === k) ??
+    STORES.find((s) => s.id.split("-").slice(1).join("-") === k) ??
+    STORES.find((s) => s.name.toLowerCase().replace(/\s+/g, "-") === k) ??
+    STORES.find((s) => s.id.endsWith(`-${k}`))
+  );
+}

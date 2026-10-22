@@ -43,8 +43,14 @@ export function Waitlist() {
       </p>
       <div className="mt-12 grid gap-12 lg:grid-cols-[1fr_1fr] lg:items-end">
         <div aria-live="polite">
-          <p className="display text-[26vw] leading-[0.85] text-yellow tabular-nums sm:text-[14vw]">{count.toLocaleString("en-US")}</p>
-          <p className="mt-3 max-w-[24ch] text-[19px] leading-snug">{count === 1 ? "neighbor" : "neighbors"} near {s.name} {count === 1 ? "is" : "are"} already waiting</p>
+          {count >= 5 ? (
+            <>
+              <p className="display text-[26vw] leading-[0.85] text-yellow tabular-nums sm:text-[14vw]">{count.toLocaleString("en-US")}</p>
+              <p className="mt-3 max-w-[24ch] text-[19px] leading-snug">neighbors near {s.name} are already waiting</p>
+            </>
+          ) : (
+            <p className="display text-[13vw] leading-[0.9] text-yellow sm:text-[6vw]">Be one of the first at {s.name}.</p>
+          )}
         </div>
         <div className="max-w-[640px]">
           <label htmlFor={`${id}-store`} className="label">

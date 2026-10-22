@@ -11,7 +11,7 @@ import type { Ga4Payload } from "./analytics";
 export type Source = "hero" | "drawer" | "band" | "drops" | "crew-club" | "delivery" | "footer";
 
 export type Subscriber = { id: string; email: string; source: Source; createdAt: string; visitorId: string };
-export type DropAlert = { id: string; dropId: string; email: string; createdAt: string; visitorId: string };
+export type DropAlert = { id: string; dropId: string; email: string; storeId: string | null; createdAt: string; visitorId: string };
 export type Member = {
   id: string;
   memberNumber: string;
@@ -25,15 +25,17 @@ export type Member = {
 export type WaitlistEntry = { id: string; storeId: string; email: string; createdAt: string; visitorId: string };
 
 export type NewSubscriber = Pick<Subscriber, "email" | "source">;
-export type NewDropAlert = Pick<DropAlert, "dropId" | "email">;
+export type NewDropAlert = { dropId: string; email: string; storeId?: string | null };
 export type NewMember = Pick<Member, "email" | "birthMonth" | "storeId" | "categories">;
 export type NewWaitlistEntry = Pick<WaitlistEntry, "storeId" | "email">;
 
 export interface DataStore {
   /** Stable anonymous id for this browser. Becomes the auth user id with Supabase. */
   visitorId(): string;
-  /** The email this visitor has given us most recently, for prefilling forms. */
+  /** The email this visitor has given us most recently, for prefilling forms and one-tap signups. */
   knownEmail(): string | null;
+  /** "Not you?": forget the remembered email. */
+  forgetEmail(): void;
 
   subscribers: {
     add(input: NewSubscriber): Promise<Subscriber>;
@@ -45,7 +47,8 @@ export interface DataStore {
     list(): Promise<DropAlert[]>;
     /** Drop ids this visitor has alerts for. */
     mine(): Promise<string[]>;
-    countFor(dropId: string): Promise<number>;
+    /** Alerts for a drop, optionally only those set from one store. */
+    countFor(dropId: string, storeId?: string): Promise<number>;
   };
   members: {
     create(input: NewMember): Promise<Member>;
@@ -143,6 +146,12 @@ function memberNumber(existing: Member[]) {
 export const localStore: DataStore = {
   visitorId,
   knownEmail: () => (hasWindow() ? window.localStorage.getItem(KEYS.email) : null),
+  forgetEmail: () => {
+    if (hasWindow()) {
+      window.localStorage.removeItem(KEYS.email);
+      window.dispatchEvent(new CustomEvent("tj:store"));
+    }
+  },
 
   subscribers: {
     async add({ email, source }) {
@@ -165,13 +174,13 @@ export const localStore: DataStore = {
   },
 
   dropAlerts: {
-    async add({ dropId, email }) {
+    async add({ dropId, email, storeId }) {
       const rows = table<DropAlert>(KEYS.dropAlerts);
       const e = normalize(email);
       remember(e);
       const existing = rows.find((r) => r.dropId === dropId && r.email === e);
       if (existing) return existing;
-      const row: DropAlert = { id: uid(), dropId, email: e, createdAt: new Date().toISOString(), visitorId: visitorId() };
+      const row: DropAlert = { id: uid(), dropId, email: e, storeId: storeId ?? null, createdAt: new Date().toISOString(), visitorId: visitorId() };
       write(KEYS.dropAlerts, [row, ...rows]);
       return row;
     },
@@ -184,8 +193,8 @@ export const localStore: DataStore = {
         .filter((r) => r.visitorId === me)
         .map((r) => r.dropId);
     },
-    async countFor(dropId) {
-      return table<DropAlert>(KEYS.dropAlerts).filter((r) => r.dropId === dropId).length;
+    async countFor(dropId, storeId) {
+      return table<DropAlert>(KEYS.dropAlerts).filter((r) => r.dropId === dropId && (!storeId || r.storeId === storeId)).length;
     },
   },
 

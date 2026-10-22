@@ -11,7 +11,7 @@ export const GET = handle(async (req) => {
     return { subscribed: rows.length > 0 };
   }
   const demo = url.searchParams.has("demo");
-  const rows = (await sql`select * from subscribers where demo = false or ${demo} order by created_at desc limit 500`) as SubscriberRow[];
+  const rows = (await sql`select * from subscribers where (demo = false or ${demo}) and visitor_id not in (select visitor_id from internal_visitors) order by created_at desc limit 500`) as SubscriberRow[];
   return rows.map(shape);
 });
 

@@ -45,6 +45,12 @@ const post = <T>(path: string, data: unknown) => call<T>(path, { method: "POST",
 export const httpStore: DataStore = {
   visitorId,
   knownEmail: () => (hasWindow() ? window.localStorage.getItem(STORE_KEYS.email) : null),
+  forgetEmail: () => {
+    if (hasWindow()) {
+      window.localStorage.removeItem(STORE_KEYS.email);
+      changed();
+    }
+  },
 
   subscribers: {
     async add(input) {
@@ -66,7 +72,7 @@ export const httpStore: DataStore = {
     },
     list: () => call<DropAlert[]>("drop-alerts"),
     mine: () => call<string[]>("drop-alerts?mine=1"),
-    countFor: async (dropId) => (await call<{ count: number }>(`drop-alerts?count=${encodeURIComponent(dropId)}`)).count,
+    countFor: async (dropId, storeId) => (await call<{ count: number }>(`drop-alerts?count=${encodeURIComponent(dropId)}${storeId ? `&store=${encodeURIComponent(storeId)}` : ""}`)).count,
   },
 
   members: {
@@ -100,7 +106,7 @@ export const httpStore: DataStore = {
     async add(payload: Ga4Payload) {
       const e = payload.events[0];
       // Fire and forget: analytics must never block or break a conversion.
-      post("events", { name: e.name, sessionId: e.params.session_id, page: e.params.page_location, params: e.params }).catch(() => {});
+      post("events", { name: e.name, sessionId: e.params.session_id, page: e.params.page_location, params: e.params, utmSource: e.params.utm_source ?? null }).catch(() => {});
     },
     list: (scope) => call<Ga4Payload[]>(scope === "mine" ? "events?mine=1" : "events"),
     async clear() {

@@ -44,7 +44,7 @@ const subscribers: Subscriber[] = Array.from({ length: 30 }, (_, i) => ({
 
 const dropAlerts: DropAlert[] = Array.from({ length: 34 }, (_, i) => {
   const who = Math.floor(r() * PEOPLE.length);
-  return { id: `seed-alert-${i}`, dropId: pick(DROP_IDS), email: email(who), createdAt: day(i * 0.8), visitorId: vid(who) };
+  return { id: `seed-alert-${i}`, dropId: pick(DROP_IDS), email: email(who), storeId: i % 3 ? pick(STORE_IDS) : null, createdAt: day(i * 0.8), visitorId: vid(who) };
 });
 
 const members: Member[] = [3, 7, 11, 16, 19, 24, 27].map((who, i) => {
